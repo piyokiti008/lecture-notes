@@ -1,0 +1,199 @@
+/* テーマ（色の組み合わせ）と、ライト／ダークの定義。
+ *  - 4つのテーマ：std（スタンダード）／moss（ナチュラル）／navy（ディープブルー）／sun（フォーカスイエロー）
+ *  - 明るさ：html の data-mode が auto（端末の設定に合わせる）／light／dark
+ *  - 色は light-dark(ライトの色, ダークの色) で1か所にまとめて書く。color-scheme が light なら前者、dark なら後者が使われる
+ *  - light-dark() に未対応の古いブラウザでは、app.css の標準（ライト）の色のまま表示される
+ *  - プリント用紙（.paper / .sheet）はどのテーマでも必ず白地・黒文字にする（印刷されるため）
+ */
+:root { color-scheme: light dark; }
+:root[data-mode="light"] { color-scheme: light; }
+:root[data-mode="dark"] { color-scheme: dark; }
+
+@supports (color: light-dark(white, black)) {
+
+  /* ===== スタンダード（これまでの青） ===== */
+  :root, :root[data-theme="std"] {
+    --bg: light-dark(#f4f3ef, #17171a); --panel: light-dark(#ffffff, #1f1f23); --panel-2: light-dark(#faf9f6, #232328);
+    --line: light-dark(#e3e1da, #34343b); --line-2: light-dark(#eeece6, #2b2b31);
+    --text: light-dark(#22211e, #ecebe8); --text-2: light-dark(#5d5b55, #b0aea8); --text-3: light-dark(#6a675f, #8f8d87);
+    --accent: light-dark(#2f5bea, #7c9bff); --accent-2: light-dark(#2249c9, #9db4ff); --accent-soft: light-dark(#e9eeff, #262d4d);
+    --accent-text: light-dark(#1f3fb0, #a9bdff); --on-accent: light-dark(#ffffff, #0e1a40); --focus: light-dark(#2f5bea, #9db4ff);
+    --danger: light-dark(#c0392b, #ff7b6e); --danger-soft: light-dark(#fdeceb, #3a2422);
+    --warn: light-dark(#a15c00, #f0b04a); --warn-soft: light-dark(#fff3dc, #3a2f1a);
+    --ok: light-dark(#2a7449, #6cc590); --ok-soft: light-dark(#e3f4ea, #1f3a2b);
+    --mark: light-dark(#fff0a0, #6a5a0a);
+    --md-accent: light-dark(#2f5bea, #8fa8ff); --md-line: light-dark(#dcdad3, #3a3a42); --md-soft: light-dark(#f3f2ee, #2a2a30); --md-sub: light-dark(#666666, #a8a6a0);
+    --stage: light-dark(#d9d7d0, #101013); --toast: light-dark(#222222, #ecebe8); --toast-text: light-dark(#ffffff, #1b1b1d);
+    --shadow-c: light-dark(rgba(0,0,0,.06), rgba(0,0,0,.35)); --shadow-c2: light-dark(rgba(0,0,0,.05), rgba(0,0,0,.4));
+    --radius: 10px;
+  }
+
+  /* ===== ナチュラル（クリーム・トープ・モスグリーン） ===== */
+  :root[data-theme="moss"] {
+    --bg: light-dark(#f2ecdf, #1b1a17); --panel: light-dark(#fbf8f1, #242320); --panel-2: light-dark(#f6f1e6, #2a2825);
+    --line: light-dark(#ddd3c0, #3b382f); --line-2: light-dark(#eae3d3, #312f29);
+    --text: light-dark(#2a2720, #ece7dc); --text-2: light-dark(#5a5446, #bab3a4); --text-3: light-dark(#645e4f, #9c9585);
+    --accent: light-dark(#5a7549, #a9c18e); --accent-2: light-dark(#475f39, #bcd1a3); --accent-soft: light-dark(#e3ead7, #2d3726);
+    --accent-text: light-dark(#3f5a31, #c3d8aa); --on-accent: light-dark(#ffffff, #1d2814); --focus: light-dark(#5a7549, #a9c18e);
+    --danger: light-dark(#b4442f, #f08a73); --danger-soft: light-dark(#f8e6e0, #3b2620);
+    --warn: light-dark(#8a5710, #e8b45a); --warn-soft: light-dark(#f7ebd0, #3a3019);
+    --ok: light-dark(#3d6829, #96c27c); --ok-soft: light-dark(#e1ecd6, #27361f);
+    --mark: light-dark(#f1e3a0, #665a1d);
+    --md-accent: light-dark(#4f6b3f, #a9c18e); --md-line: light-dark(#d8cfbc, #433f35); --md-soft: light-dark(#f1ebdd, #2e2c27); --md-sub: light-dark(#6b6456, #aaa393);
+    --stage: light-dark(#d6cfbf, #12110f); --toast: light-dark(#3a362c, #ece7dc); --toast-text: light-dark(#fbf8f1, #1b1a17);
+    --shadow-c: light-dark(rgba(80,60,20,.08), rgba(0,0,0,.4)); --shadow-c2: light-dark(rgba(80,60,20,.06), rgba(0,0,0,.45));
+    --radius: 14px;
+  }
+
+  /* ===== ディープブルー（紺と水色のアカデミック） ===== */
+  :root[data-theme="navy"] {
+    --bg: light-dark(#eaf0f8, #0a1730); --panel: light-dark(#ffffff, #10244a); --panel-2: light-dark(#f4f7fc, #132a55);
+    --line: light-dark(#d3dcec, #24407a); --line-2: light-dark(#e4eaf4, #1b3466);
+    --text: light-dark(#0f2342, #eef4ff); --text-2: light-dark(#44587a, #b8c9e8); --text-3: light-dark(#52668a, #8aa0c8);
+    --accent: light-dark(#143a73, #8cc0f5); --accent-2: light-dark(#0e2c59, #aad3f9); --accent-soft: light-dark(#dce9fa, #1b3866);
+    --accent-text: light-dark(#143a73, #bcdcff); --on-accent: light-dark(#ffffff, #06162f); --focus: light-dark(#2563c0, #8cc0f5);
+    --danger: light-dark(#c0392b, #ff8a7d); --danger-soft: light-dark(#fdeceb, #40242a);
+    --warn: light-dark(#9a5a00, #f0bf5e); --warn-soft: light-dark(#fff1d6, #3d3519);
+    --ok: light-dark(#2a7a52, #6fd0a0); --ok-soft: light-dark(#e0f3e8, #17402f);
+    --mark: light-dark(#fff0a0, #6b5d1e);
+    --md-accent: light-dark(#1f56a8, #8cc0f5); --md-line: light-dark(#cfd9ea, #2c4a85); --md-soft: light-dark(#eef3fb, #163060); --md-sub: light-dark(#5a6d8f, #a9bde0);
+    --stage: light-dark(#cdd7e8, #060e1f); --toast: light-dark(#0f2342, #eef4ff); --toast-text: light-dark(#ffffff, #0a1730);
+    --shadow-c: light-dark(rgba(15,35,66,.08), rgba(0,0,0,.4)); --shadow-c2: light-dark(rgba(15,35,66,.06), rgba(0,0,0,.45));
+    --radius: 12px;
+  }
+
+  /* ===== フォーカスイエロー（白とチャコール、黄色の強調） ===== */
+  :root[data-theme="sun"] {
+    --bg: light-dark(#f1f2f3, #17181b); --panel: light-dark(#ffffff, #232427); --panel-2: light-dark(#f7f7f8, #2a2b2f);
+    --line: light-dark(#dfe0e3, #3a3b41); --line-2: light-dark(#ececee, #303137);
+    --text: light-dark(#232427, #f1f1f3); --text-2: light-dark(#4f5156, #bbbcc2); --text-3: light-dark(#63656c, #9a9ba3);
+    --accent: light-dark(#f5bd1f, #f8c52a); --accent-2: light-dark(#e2a90a, #ffd24d); --accent-soft: light-dark(#fff3c9, #3b3317);
+    --accent-text: light-dark(#6b4e00, #ffd966); --on-accent: light-dark(#231b00, #231b00); --focus: light-dark(#a87a00, #f8c52a);
+    --danger: light-dark(#c0392b, #ff7b6e); --danger-soft: light-dark(#fdeceb, #3a2422);
+    --warn: light-dark(#8f5a00, #f0b04a); --warn-soft: light-dark(#fff1d0, #3a2f1a);
+    --ok: light-dark(#2a7449, #6cc590); --ok-soft: light-dark(#e3f4ea, #1f3a2b);
+    --mark: light-dark(#ffe58a, #6a5a0a);
+    --md-accent: light-dark(#8a6200, #f8c52a); --md-line: light-dark(#dcdde0, #3f4046); --md-soft: light-dark(#f3f3f4, #2e2f34); --md-sub: light-dark(#60626a, #aeafb6);
+    --stage: light-dark(#d8d9dc, #0f1012); --toast: light-dark(#2b2c30, #f1f1f3); --toast-text: light-dark(#ffffff, #1b1c1f);
+    --shadow-c: light-dark(rgba(0,0,0,.07), rgba(0,0,0,.4)); --shadow-c2: light-dark(rgba(0,0,0,.05), rgba(0,0,0,.45));
+    --radius: 9px;
+  }
+  /* ===== ここから「目的で選ぶ」テーマ ===== */
+
+  /* ===== 集中（落ち着いた青灰色。色の主張を抑えて、気が散りにくい） ===== */
+  :root[data-theme="calm"] {
+    --bg: light-dark(#edf0f3, #11161c); --panel: light-dark(#ffffff, #171e26); --panel-2: light-dark(#f5f7f9, #1b232c);
+    --line: light-dark(#d9dfe5, #2b3541); --line-2: light-dark(#e8ecf0, #222b35);
+    --text: light-dark(#1e2832, #e6ebf0); --text-2: light-dark(#46535f, #b2bdc8); --text-3: light-dark(#566472, #8e9dac);
+    --accent: light-dark(#3f6f9a, #86b5dd); --accent-2: light-dark(#305a82, #a3c8e8); --accent-soft: light-dark(#e1ebf4, #1f3042);
+    --accent-text: light-dark(#2c5780, #a9cdea); --on-accent: light-dark(#ffffff, #0c1b29); --focus: light-dark(#3f6f9a, #86b5dd);
+    --danger: light-dark(#b5412f, #f08a7a); --danger-soft: light-dark(#f8e8e4, #3a2623);
+    --warn: light-dark(#8c5a10, #e6b25a); --warn-soft: light-dark(#f7ecd6, #382f1b);
+    --ok: light-dark(#2a7550, #78c79d); --ok-soft: light-dark(#e0f1e8, #1c3a2c);
+    --mark: light-dark(#f7e9a8, #5e5421);
+    --md-accent: light-dark(#3a6a94, #86b5dd); --md-line: light-dark(#d5dce3, #2f3a47); --md-soft: light-dark(#eef2f5, #1f2832); --md-sub: light-dark(#566472, #a7b4c1);
+    --stage: light-dark(#d3d9df, #0b0f13); --toast: light-dark(#28323d, #e6ebf0); --toast-text: light-dark(#ffffff, #11161c);
+    --shadow-c: light-dark(rgba(30,50,70,.07), rgba(0,0,0,.4)); --shadow-c2: light-dark(rgba(30,50,70,.05), rgba(0,0,0,.45));
+    --radius: 10px;
+  }
+
+  /* ===== リラックス（やわらかなミントグリーンと、大きめの丸み） ===== */
+  :root[data-theme="mint"] {
+    --bg: light-dark(#e8f2ee, #0e1816); --panel: light-dark(#fbfefd, #14211e); --panel-2: light-dark(#f1f8f5, #182724);
+    --line: light-dark(#d0e2db, #263a35); --line-2: light-dark(#e0eeea, #1e2f2b);
+    --text: light-dark(#1b2b27, #e4f0ec); --text-2: light-dark(#435a54, #aec6bf); --text-3: light-dark(#52695f, #8aa59d);
+    --accent: light-dark(#1f7a6d, #6fd0bd); --accent-2: light-dark(#17635a, #8fddcd); --accent-soft: light-dark(#d9efe9, #17352f);
+    --accent-text: light-dark(#17635a, #9be3d4); --on-accent: light-dark(#ffffff, #062a24); --focus: light-dark(#1f7a6d, #6fd0bd);
+    --danger: light-dark(#b4443a, #f09283); --danger-soft: light-dark(#f8e7e3, #3a2825);
+    --warn: light-dark(#8a5a10, #e8b45a); --warn-soft: light-dark(#f7ecd4, #392f1a);
+    --ok: light-dark(#26704a, #7fd1a4); --ok-soft: light-dark(#dcefe4, #1a3a2b);
+    --mark: light-dark(#fbe6b8, #5d4c1c);
+    --md-accent: light-dark(#1d7568, #6fd0bd); --md-line: light-dark(#cfe1da, #2b423c); --md-soft: light-dark(#edf6f2, #1b2c28); --md-sub: light-dark(#52695f, #a3bdb5);
+    --stage: light-dark(#cfe0d9, #091210); --toast: light-dark(#23403a, #e4f0ec); --toast-text: light-dark(#ffffff, #0e1816);
+    --shadow-c: light-dark(rgba(20,70,60,.08), rgba(0,0,0,.4)); --shadow-c2: light-dark(rgba(20,70,60,.06), rgba(0,0,0,.45));
+    --radius: 16px;
+  }
+
+  /* ===== 朝・やる気（暖かいコーラル） ===== */
+  :root[data-theme="sunrise"] {
+    --bg: light-dark(#faefe6, #1d1411); --panel: light-dark(#fffaf5, #261b17); --panel-2: light-dark(#fcf2ea, #2c201b);
+    --line: light-dark(#ecd8c8, #44312a); --line-2: light-dark(#f4e5d8, #392922);
+    --text: light-dark(#2c211b, #f6e9e1); --text-2: light-dark(#5f4b3f, #cdb6a8); --text-3: light-dark(#735b4b, #a8917f);
+    --accent: light-dark(#c4472b, #ff9a78); --accent-2: light-dark(#a83a22, #ffb095); --accent-soft: light-dark(#fde4da, #43241a);
+    --accent-text: light-dark(#a33920, #ffb59a); --on-accent: light-dark(#ffffff, #2b0f06); --focus: light-dark(#c4472b, #ff9a78);
+    --danger: light-dark(#b3261e, #ff8a80); --danger-soft: light-dark(#fbe6e2, #42221f);
+    --warn: light-dark(#8a5300, #f0b04a); --warn-soft: light-dark(#fdeccf, #3b2d17);
+    --ok: light-dark(#2b7447, #7fcb9a); --ok-soft: light-dark(#e1f1e6, #1e3a2a);
+    --mark: light-dark(#ffe08a, #6e5a10);
+    --md-accent: light-dark(#b8401f, #ff9a78); --md-line: light-dark(#e6d3c3, #4a352d); --md-soft: light-dark(#f8ece2, #31231e); --md-sub: light-dark(#6c5546, #bba596);
+    --stage: light-dark(#e3d2c3, #120b09); --toast: light-dark(#3b2a22, #f6e9e1); --toast-text: light-dark(#fffaf5, #1d1411);
+    --shadow-c: light-dark(rgba(120,60,20,.09), rgba(0,0,0,.4)); --shadow-c2: light-dark(rgba(120,60,20,.06), rgba(0,0,0,.45));
+    --radius: 12px;
+  }
+
+  /* ===== 夜（暖色で、まぶしさと青い光を抑える。ライトにするとランプ明かりの紙の色） ===== */
+  :root[data-theme="night"] {
+    --bg: light-dark(#eadfc8, #15110c); --panel: light-dark(#f6ecd8, #1c1710); --panel-2: light-dark(#f0e4cd, #211b13);
+    --line: light-dark(#d9c8a8, #3a3022); --line-2: light-dark(#e4d6b9, #2d251a);
+    --text: light-dark(#33291c, #dccfb8); --text-2: light-dark(#5b4c36, #b5a68c); --text-3: light-dark(#6b5a41, #988a6f);
+    --accent: light-dark(#8a5a1c, #e0a458); --accent-2: light-dark(#6e4510, #ecb978); --accent-soft: light-dark(#ead8b2, #3a2c16);
+    --accent-text: light-dark(#6e4510, #f0c27f); --on-accent: light-dark(#fff8ea, #241705); --focus: light-dark(#8a5a1c, #e0a458);
+    --danger: light-dark(#a8402a, #e8917a); --danger-soft: light-dark(#f2dcd0, #3b2620);
+    --warn: light-dark(#7d5008, #e3b05e); --warn-soft: light-dark(#efddb4, #3a2f18);
+    --ok: light-dark(#3e6b30, #9fc47e); --ok-soft: light-dark(#dde6c6, #25321d);
+    --mark: light-dark(#eed36e, #5c4a17);
+    --md-accent: light-dark(#7d4f14, #e0a458); --md-line: light-dark(#d4c3a1, #43382a); --md-soft: light-dark(#ece0c8, #272016); --md-sub: light-dark(#66553c, #b0a187);
+    --stage: light-dark(#d6c8aa, #0d0a07); --toast: light-dark(#3a2f20, #dccfb8); --toast-text: light-dark(#f6ecd8, #15110c);
+    --shadow-c: light-dark(rgba(90,60,20,.10), rgba(0,0,0,.45)); --shadow-c2: light-dark(rgba(90,60,20,.07), rgba(0,0,0,.5));
+    --radius: 12px;
+  }
+
+  /* ===== 暗記（全体は控えめに、重要マークと穴埋め・用語だけを鮮やかに） ===== */
+  :root[data-theme="marker"] {
+    --bg: light-dark(#f2f2ef, #161618); --panel: light-dark(#ffffff, #1e1e21); --panel-2: light-dark(#f8f8f6, #232326);
+    --line: light-dark(#dedfdb, #333337); --line-2: light-dark(#ebebe8, #2a2a2e);
+    --text: light-dark(#1f1f22, #ececee); --text-2: light-dark(#4d4d52, #b6b6bd); --text-3: light-dark(#5e5e65, #9696a0);
+    --accent: light-dark(#b3125f, #ff7eb6); --accent-2: light-dark(#8f0e4c, #ff9cc8); --accent-soft: light-dark(#fbe3ee, #3d1d2d);
+    --accent-text: light-dark(#a00f54, #ffa6cd); --on-accent: light-dark(#ffffff, #33081d); --focus: light-dark(#b3125f, #ff7eb6);
+    --danger: light-dark(#c0392b, #ff7b6e); --danger-soft: light-dark(#fdeceb, #3a2422);
+    --warn: light-dark(#8a5300, #f0b04a); --warn-soft: light-dark(#fdeccf, #3a2f1a);
+    --ok: light-dark(#2a7449, #6cc590); --ok-soft: light-dark(#e3f4ea, #1f3a2b);
+    --mark: light-dark(#ffe94d, #766500);
+    --md-accent: light-dark(#b3125f, #ff7eb6); --md-line: light-dark(#dadad6, #3a3a3f); --md-soft: light-dark(#f3f3f0, #2a2a2e); --md-sub: light-dark(#5e5e65, #aaaab2);
+    --stage: light-dark(#d6d6d2, #0e0e10); --toast: light-dark(#2a2a2e, #ececee); --toast-text: light-dark(#ffffff, #161618);
+    --shadow-c: light-dark(rgba(0,0,0,.06), rgba(0,0,0,.4)); --shadow-c2: light-dark(rgba(0,0,0,.05), rgba(0,0,0,.45));
+    --radius: 8px;
+  }
+
+  /* ===== 見やすさ（文字と背景の差を最大に。赤と緑に頼らず、青とオレンジで区別する＝色の見分けにくい方にも） ===== */
+  :root[data-theme="clear"] {
+    --bg: light-dark(#ffffff, #000000); --panel: light-dark(#ffffff, #000000); --panel-2: light-dark(#f0f0f0, #141414);
+    --line: light-dark(#6b6b6b, #9a9a9a); --line-2: light-dark(#b8b8b8, #4d4d4d);
+    --text: light-dark(#000000, #ffffff); --text-2: light-dark(#262626, #ececec); --text-3: light-dark(#454545, #c4c4c4);
+    --accent: light-dark(#005a9e, #ffd400); --accent-2: light-dark(#004478, #ffe45c); --accent-soft: light-dark(#dbeaf7, #2e2800);
+    --accent-text: light-dark(#004478, #ffe45c); --on-accent: light-dark(#ffffff, #000000); --focus: light-dark(#005a9e, #ffd400);
+    --danger: light-dark(#7f2f00, #ff9e5e); --danger-soft: light-dark(#fde8d9, #3d1f08);
+    --warn: light-dark(#6e4300, #ffcf6b); --warn-soft: light-dark(#fdecc4, #3a2c00);
+    --ok: light-dark(#004478, #6cc5ff); --ok-soft: light-dark(#dbeaf7, #0c2b40);
+    --mark: light-dark(#ffd966, #6b5c00);
+    --md-accent: light-dark(#004f8c, #ffd400); --md-line: light-dark(#8a8a8a, #8a8a8a); --md-soft: light-dark(#eeeeee, #1a1a1a); --md-sub: light-dark(#333333, #d4d4d4);
+    --stage: light-dark(#c8c8c8, #0a0a0a); --toast: light-dark(#000000, #ffffff); --toast-text: light-dark(#ffffff, #000000);
+    --shadow-c: light-dark(rgba(0,0,0,.18), rgba(255,255,255,.12)); --shadow-c2: light-dark(rgba(0,0,0,.12), rgba(255,255,255,.08));
+    --radius: 6px;
+  }
+}
+
+/* ===== 角の丸み（利用者の設定。標準はテーマごとの値） ===== */
+:root[data-round="s"] { --radius: 5px; }
+:root[data-round="l"] { --radius: 18px; }
+
+/* ===== 文字の大きさ（ノートの本文とプレビュー） ===== */
+:root { --fs-note: 15px; }
+:root[data-size="s"] { --fs-note: 13.5px; }
+:root[data-size="l"] { --fs-note: 17.5px; }
+
+/* ===== プリント用紙はどのテーマでも白地・黒文字 ===== */
+.paper, .sheet, #print-root {
+  color-scheme: light;
+  --mark: #fff0a0; --md-accent: #2f5bea; --md-line: #dcdad3; --md-soft: #f3f2ee; --md-sub: #666666;
+}

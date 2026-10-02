@@ -1,0 +1,121 @@
+/* スマホ用の画面。html.is-phone のときだけ効く（パソコン用の見た目は変えない）。
+ * 1画面に1つだけ見せる：#app の data-mpane が root（教科／考査の一覧）・mid（ノート一覧／範囲）・detail（ノート本文／まとめ・プリント）。 */
+
+.m-bar, .m-back, .m-nav, .m-only { display: none; }
+
+html.is-phone body { overscroll-behavior: none; }
+html.is-phone .app {
+  position: fixed; left: 0; right: 0; top: var(--app-top, 0px); height: var(--app-h, 100dvh);
+  display: flex; flex-direction: column; grid-template-columns: none;
+}
+html.is-phone .sidebar, html.is-phone .main { flex: 1 1 auto; min-height: 0; width: 100%; }
+html.is-phone .app[data-mpane="root"] .main { display: none; }
+html.is-phone .app:not([data-mpane="root"]) .sidebar { display: none; }
+
+/* ----- 下の切り替え ----- */
+html.is-phone .m-nav { display: flex; flex: none; border-top: 1px solid var(--line); background: var(--panel); padding-bottom: env(safe-area-inset-bottom); }
+html.is-phone .m-nav[hidden] { display: none; }
+html.is-phone.kb-open .m-nav { display: none; }
+.m-nav button { flex: 1; position: relative; display: flex; flex-direction: column; align-items: center; gap: 2px; padding: 9px 0 7px; border: 0; background: transparent; color: var(--text-3); font-size: 11px; font-weight: 700; }
+.m-nav button svg.i { width: 22px; height: 22px; }
+.m-nav button.on { color: var(--accent-text); }
+.m-nav button.on svg.i { stroke-width: 2.2; }
+.m-nav .dotwarn { position: absolute; top: 7px; left: calc(50% + 11px); margin: 0; }
+
+/* ----- 戻るバー ----- */
+html.is-phone .m-bar { display: flex; align-items: center; gap: 8px; min-height: 36px; }
+html.is-phone .m-bar .grow { flex: 1; }
+html.is-phone .m-back { display: inline-flex; align-items: center; gap: 2px; border: 0; background: transparent; color: var(--accent-text); font-weight: 700; font-size: 15px; padding: 6px 4px; }
+html.is-phone .m-only { display: inline-flex; }
+html.is-phone .m-bar .seg button { padding: 5px 14px; }
+
+/* ----- 一覧（教科・考査）：大きな押しやすいカード ----- */
+html.is-phone .sidebar { border-right: 0; }
+html.is-phone .nav, html.is-phone .side-foot { display: none; }
+html.is-phone .brand { padding: 18px 18px 6px; font-size: 20px; }
+html.is-phone .side-head { padding: 14px 18px 8px; font-size: 12px; }
+html.is-phone .side-head .icon-btn { width: 36px; height: 36px; background: var(--accent-soft); color: var(--accent-text); border-radius: 50%; }
+html.is-phone .side-list { padding: 0 14px 14px; }
+html.is-phone .side-item { padding: 14px 12px; border-radius: var(--radius); background: var(--panel-2); border: 1px solid var(--line-2); margin-bottom: 8px; }
+html.is-phone .side-item.on { background: var(--panel-2); }
+html.is-phone .side-item .nm { font-size: 15px; }
+html.is-phone .side-item .dot { width: 12px; height: 12px; }
+html.is-phone .side-item .icon-btn { opacity: 1; width: 36px; height: 36px; }
+html.is-phone .empty-note { padding: 28px 12px; }
+
+/* ----- ノート一覧・考査の範囲 ----- */
+html.is-phone .list-col, html.is-phone .range-col { width: 100%; border-right: 0; flex: 1 1 auto; }
+html.is-phone .editor-col, html.is-phone .exam-col { width: 100%; flex: 1 1 auto; }
+html.is-phone .app[data-mpane="mid"] .editor-col, html.is-phone .app[data-mpane="mid"] .exam-col { display: none; }
+html.is-phone .app[data-mpane="detail"] .list-col, html.is-phone .app[data-mpane="detail"] .range-col { display: none; }
+html.is-phone .list-head { padding: 8px 14px 10px; }
+html.is-phone .list-title h2 { font-size: 20px; }
+html.is-phone .list-body { padding: 4px 12px 16px; }
+html.is-phone .unit-head { padding: 10px 6px 10px 4px; }
+html.is-phone .unit-head .acts { display: inline-flex; }
+html.is-phone .unit-head .cnt { display: none; }
+html.is-phone .unit-head [data-act="unit-up"], html.is-phone .unit-head [data-act="unit-down"] { display: none; }
+html.is-phone .note-item { padding: 12px 12px 12px 20px; }
+html.is-phone .ni-title { font-size: 15px; }
+html.is-phone .range-head { padding: 8px 14px 12px; }
+html.is-phone .range-body { padding: 8px 12px 20px; }
+html.is-phone .r-unit { padding: 9px 4px 9px 26px; }
+html.is-phone .r-subject > label { padding: 8px 4px; }
+
+/* ----- ノートの本文：書式ボタンは、画面の下に浮かぶ丸いバー ----- */
+html.is-phone .editor-col .ed-head { padding: 6px 14px 8px; }
+html.is-phone .title-input { font-size: 20px; }
+html.is-phone .ed-meta { display: grid; grid-template-columns: 1fr 1fr; gap: 6px 10px; align-items: start; }
+html.is-phone .ed-meta .fld { display: flex; flex-direction: column; align-items: stretch; gap: 2px; font-size: 11.5px; white-space: normal; }
+html.is-phone .ed-meta input[type=date], html.is-phone .ed-meta select { width: 100%; min-width: 0; padding: 7px 8px; }
+html.is-phone .ed-meta .fld:nth-child(3) { flex-direction: row; align-items: center; gap: 8px; }
+html.is-phone .ed-meta .toggle { justify-self: start; padding: 6px 12px; }
+html.is-phone .study-hint { padding: 5px 14px; order: 0; }
+html.is-phone .ed-body { order: 1; }
+html.is-phone .ed-toolbar {
+  order: 2; flex-wrap: nowrap; overflow-x: auto; scrollbar-width: none; gap: 2px;
+  margin: 6px 10px; padding: 4px 6px; border: 1px solid var(--line); border-radius: var(--r-lg); background: var(--panel); box-shadow: var(--shadow);
+}
+html.is-phone .ed-toolbar::-webkit-scrollbar { display: none; }
+html.is-phone .ed-toolbar .tb { flex: none; height: 38px; padding: 0 11px; }
+html.is-phone .ed-toolbar .tb .k, html.is-phone .ed-toolbar .tb-spacer, html.is-phone .ed-toolbar #modeSeg { display: none; }
+html.is-phone .ed-toolbar .tb-sep { flex: none; }
+html.is-phone .ed-body textarea { padding: 14px 16px; font-size: max(16px, var(--fs-note)); }
+html.is-phone .preview { padding: 14px 16px 40px; }
+html.is-phone .ed-foot { order: 3; padding: 6px 14px; gap: 10px; }
+html.is-phone .ed-foot .ed-stats { display: none; }
+
+/* ----- 考査：まとめ・プリント ----- */
+html.is-phone .tabs { padding: 8px 10px 0; gap: 2px; align-items: center; overflow-x: auto; }
+html.is-phone .tab { padding: 10px 12px; white-space: nowrap; }
+html.is-phone .pad { padding: 14px 14px 40px; }
+html.is-phone .print-wrap { flex-direction: column; overflow-y: auto; }
+html.is-phone .opt-col { width: auto; max-height: none; overflow: visible; border-right: 0; border-bottom: 1px solid var(--line); flex: none; }
+html.is-phone .preview-col { flex: none; min-height: 75dvh; }
+html.is-phone .usplit { grid-template-columns: 1fr; }
+html.is-phone .ucard-head { flex-wrap: wrap; row-gap: 6px; padding: 12px; }
+html.is-phone .ucard-head .sn { white-space: nowrap; }
+html.is-phone .ucard-head .nm { flex: 1 1 0; min-width: 0; }
+html.is-phone .ucard-head .grow { display: none; }
+html.is-phone .ucard-head .chips { flex: 1 0 100%; padding-left: 28px; }
+html.is-phone #zoomSeg, html.is-phone .pv-bar .field-l { display: none; }
+
+/* ----- ダイアログ：下から出るシート ----- */
+html.is-phone dialog { width: 100vw; max-width: 100vw; margin: auto 0 0; border-radius: var(--r-lg) var(--r-lg) 0 0; max-height: 92dvh; }
+html.is-phone dialog.wide { width: 100vw; }
+html.is-phone .dlg-form { padding: 18px 16px calc(16px + env(safe-area-inset-bottom)); max-height: 92dvh; }
+html.is-phone .dlg-actions .btn { flex: 1; justify-content: center; }
+html.is-phone .th-grid { grid-template-columns: 1fr 1fr; }
+html.is-phone .toast { bottom: calc(76px + env(safe-area-inset-bottom)); max-width: 92vw; }
+
+/* ----- 押しやすさ・入力 ----- */
+html.is-phone .btn { min-height: 40px; }
+html.is-phone .btn.sm { min-height: 34px; }
+html.is-phone .icon-btn { width: 36px; height: 36px; }
+html.is-phone input, html.is-phone select, html.is-phone textarea { font-size: 16px; }
+html.is-phone .welcome { padding: 24px 18px; }
+
+/* ----- メニュー ----- */
+.m-menu { display: flex; flex-direction: column; gap: 8px; }
+.m-item { display: flex; align-items: center; gap: 10px; padding: 14px; border: 1px solid var(--line); background: var(--panel-2); border-radius: var(--radius); font-weight: 700; font-size: 15px; text-align: left; }
+.m-item:active { background: var(--line-2); }
