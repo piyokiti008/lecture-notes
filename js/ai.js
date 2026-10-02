@@ -1,9 +1,13 @@
 /* AI アシスタント（拡張機能）: 教材→ノート / 図解 / プリントの依頼。
-   通信はデスクトップ版のメインプロセスだけが行う（API キーは画面側から見えない）。ブラウザ版では無効。 */
+   通信は「窓口」D だけが行う。デスクトップ版は main プロセス（lnDesktop.ai）、ブラウザ版は js/webai.js（LN.webAi.ai）。
+   どちらも同じ形なので、この画面はどちらでも同じように動く。ブラウザ版で使える AI は Gemini（スマホ向き）と Ollama（パソコン向き）。 */
 (function (root) {
   'use strict';
   const LN = (root.LN = root.LN || {});
-  const D = root.lnDesktop && root.lnDesktop.ai;
+  const DESKTOP = !!(root.lnDesktop && root.lnDesktop.ai);
+  const WEB = !DESKTOP && !!(LN.webAi && LN.webAi.ai);
+  const D = DESKTOP ? root.lnDesktop.ai : (WEB ? LN.webAi.ai : null);
+  const openExternal = (url) => (DESKTOP ? root.lnDesktop.openExternal(url) : WEB ? LN.webAi.openExternal(url) : false);
   const md = () => LN.md, sh = () => LN.sheets;
 
   const MODELS = [
@@ -83,12 +87,14 @@
 
   /* ---------- AI の種類と設定 ---------- */
   const PROV = {
-    gemini: { label: 'Google Gemini', tag: '無料', desc: '高品質。PDF・画像・音声・動画もそのまま読めます。1 日に使える回数に上限があり、送った内容が Google の製品改善に使われることがあります。' },
-    ollama: { label: 'このPCで動かす（Ollama）', tag: '無料・オフライン', desc: '内容が PC の外に出ません。性能はこの PC 次第です（3〜7GB ほどの AI をダウンロードします）。' },
+    gemini: { label: 'Google Gemini', tag: '無料', desc: (WEB ? 'インストール不要で、スマホ向き。' : '') + '高品質。PDF・画像・音声・動画もそのまま読めます。1 日に使える回数に上限があり、送った内容が Google の製品改善に使われることがあります。' },
+    ollama: { label: 'このPCで動かす（Ollama）', tag: '無料・オフライン', desc: (WEB ? 'パソコン向き。最初に1回だけ設定が必要です。' : '') + '内容が PC の外に出ません。性能はこの PC 次第です（3〜7GB ほどの AI をダウンロードします）。' },
     anthropic: { label: 'Anthropic Claude', tag: '有料', desc: '最高品質。使った分だけ、ご自身のキーに課金されます。' },
     openai: { label: 'その他（OpenAI 互換）', tag: '接続先による', desc: 'Groq（無料枠あり）・OpenRouter・LM Studio など。' },
   };
   const PRESETS = { groq: ['Groq（無料枠あり）', 'https://api.groq.com/openai/v1'], openrouter: ['OpenRouter', 'https://openrouter.ai/api/v1'], lmstudio: ['LM Studio（この PC）', 'http://127.0.0.1:1234/v1'], custom: ['その他', ''] };
+  const PROV_IDS = () => (WEB ? ['gemini', 'ollama'] : Object.keys(PROV)); // ブラウザ版で使える AI（通信先を限っているため）
+  const recommended = () => (LN.theme && LN.theme.isPhone() ? 'gemini' : 'ollama'); // スマホは Gemini（インストール不要）、パソコンは Ollama
   const KEY_LINK = { gemini: 'https://aistudio.google.com/apikey', anthropic: 'https://console.anthropic.com/settings/keys', groq: 'https://console.groq.com/keys', openrouter: 'https://openrouter.ai/keys' };
   const RECOMMENDED = [['qwen3.5:4b', '標準（約 3.4GB・メモリ 8GB 以上）'], ['qwen3.5:2b', '軽量（約 2.7GB・メモリが少ない PC 向け）'], ['qwen3.5:9b', '高品質（約 6.6GB・メモリ 16GB 以上）']];
 
@@ -213,8 +219,7 @@
     if (!D) {
       U.ask({
         title: 'AI アシスタント', hideCancel: false, cancelText: '閉じる', hideOk: true,
-        body: '<div class="ai-note">AI 機能（教材からノートを作る・図解を作る・プリントを依頼する）は、<b>デスクトップアプリ版</b>で使えます。<br>' +
-          'ブラウザ版では、API キーを安全に保管し、通信をアプリ側だけに限定することができないためです。</div>',
+        body: '<div class="ai-note">AI 機能（教材からノートを作る・図解を作る・プリントを依頼する）は、この環境では使えません。</div>',
       });
       return;
     }
@@ -222,7 +227,7 @@
     U.ask({
       title: 'AI アシスタントの設定', wide: true, hideOk: true, cancelText: '閉じる',
       body: '<div class="ai-note"><b>費用について：</b>このアプリ自体は無料で、作者が費用を負担する仕組み（共通のキーやサーバー）はありません。' +
-        '<b>「無料」の AI を選べば、利用料はかかりません。</b>キーもデータも、あなたの PC の中だけで管理されます。</div>' +
+        '<b>「無料」の AI を選べば、利用料はかかりません。</b>' + (WEB ? 'API キーは、<b>このブラウザの中だけ</b>に保存されます（ドライブには同期されず、運営にも届きません）。AI への通信は、このブラウザから Google（Gemini）またはこのパソコンの Ollama へ直接行われます。' : 'キーもデータも、あなたの PC の中だけで管理されます。') + '</div>' +
         '<div class="prov-grid" id="provGrid"></div><div id="provPanel"></div><div class="ai-status" id="aiSetStatus"></div>',
       onOpen(form) {
         const say = (t, bad, spin) => { const s = $('#aiSetStatus', form); s.innerHTML = (spin ? '<span class="ai-spin"></span>' : '') + esc(t || ''); s.style.color = bad ? 'var(--danger)' : 'var(--text-2)'; };
@@ -230,7 +235,9 @@
         const keyBlock = (p, linkKey, label) => '<div class="dlg-field"><label class="l">API キー <span>' + (ai.keys[p] ? '（登録済み）' : '（未登録）') + '</span></label>' +
           '<div style="display:flex;gap:6px"><input type="password" id="kKey" autocomplete="off" placeholder="' + (p === 'anthropic' ? 'sk-ant-...' : 'キーを貼り付け') + '" style="flex:1"><button type="button" class="btn primary" data-a="savekey" data-p="' + p + '">保存</button>' +
           (ai.keys[p] ? '<button type="button" class="btn ghost" data-a="clearkey" data-p="' + p + '" style="color:var(--danger)">削除</button>' : '') + '</div>' +
-          (KEY_LINK[linkKey] ? '<div class="opt-note" style="margin-top:4px"><button type="button" class="btn sm" data-a="open" data-url="' + KEY_LINK[linkKey] + '">' + esc(label) + '</button> ← キーを作るページを開きます</div>' : '') + '</div>';
+          (KEY_LINK[linkKey] ? '<div class="opt-note" style="margin-top:4px"><button type="button" class="btn sm" data-a="open" data-url="' + KEY_LINK[linkKey] + '">' + esc(label) + '</button> ← キーを作るページを開きます</div>' : '') +
+          (WEB ? '<label class="check" style="margin-top:8px"><input type="checkbox" id="kRemember"' + (LN.webAi.remember ? ' checked' : '') + '> このブラウザにキーを記憶する</label>' +
+            '<div class="opt-note">オフにすると、ブラウザを閉じたときにキーを忘れます（毎回入れ直し）。<b>このブラウザを、他の人と共有している場合は、オフにしてください。</b>キーは、いつでも Google AI Studio で無効にできます。</div>' : '') + '</div>';
         const modelBlock = (id, list) => '<div class="dlg-field"><label class="l">使うモデル</label><div style="display:flex;gap:6px"><input type="text" id="kModel" list="kModels" value="' + esc(cfg()[id].model) + '" placeholder="モデル名" autocomplete="off" style="flex:1">' +
           '<datalist id="kModels">' + list.map((m) => '<option value="' + esc(m.id) + '">' + esc(m.label) + '</option>').join('') + '</datalist><button type="button" class="btn" data-a="models">一覧を更新</button></div></div>';
 
@@ -252,13 +259,14 @@
 
         function renderGrid() {
           const cur = cfg().provider;
-          $('#provGrid', form).innerHTML = Object.keys(PROV).map((p) => '<button type="button" class="prov-card' + (cur === p ? ' on' : '') + '" data-a="pick" data-p="' + p + '"><b>' + esc(PROV[p].label) +
-            '</b><span class="prov-tag ' + (/無料/.test(PROV[p].tag) ? 'free' : '') + '">' + esc(PROV[p].tag) + '</span><small>' + esc(PROV[p].desc) + '</small></button>').join('');
+          const rec = WEB ? recommended() : '';
+          $('#provGrid', form).innerHTML = PROV_IDS().map((p) => '<button type="button" class="prov-card' + (cur === p ? ' on' : '') + '" data-a="pick" data-p="' + p + '"><b>' + esc(PROV[p].label) +
+            '</b><span class="prov-tag ' + (/無料/.test(PROV[p].tag) ? 'free' : '') + '">' + esc(PROV[p].tag) + '</span>' + (rec === p ? '<span class="prov-tag rec">この端末におすすめ</span>' : '') + '<small>' + esc(PROV[p].desc) + '</small></button>').join('');
         }
 
         function renderPanel(keepModels) {
           const c = cfg(), p = c.provider;
-          if (!p) { panel.innerHTML = '<div class="opt-note" style="padding:8px 2px">使う AI を選んでください。迷ったら、無料で高品質な <b>Google Gemini</b> がおすすめです（Google アカウントがあれば、数分で使い始められます）。</div>'; return; }
+          if (!p) { panel.innerHTML = '<div class="opt-note" style="padding:8px 2px">使う AI を選んでください。' + (WEB ? '<b>スマホは Gemini</b>（インストール不要）、<b>パソコンは Ollama</b>（この PC の中で動く）がおすすめです。' : '迷ったら、無料で高品質な <b>Google Gemini</b> がおすすめです（Google アカウントがあれば、数分で使い始められます）。') + '</div>'; return; }
           let h = '';
           if (p === 'gemini') {
             h = '<div class="ai-note"><b>無料で使う手順</b>：① 下のボタンで「Google AI Studio」を開き、Google アカウントで API キーを作成 → ② 表示されたキーを貼り付けて「保存」。クレジットカードは不要です。<br>' +
@@ -288,9 +296,20 @@
           const c = cfg(), o = c.ollama;
           const st = await D.ollamaStatus(o), el = $('#olStatus', form), body = $('#olBody', form);
           if (!el) return;
+          // ブラウザ版：このページからの接続を許可する設定（最初の1回だけ）。Windows のコマンドを、そのまま貼り付けられるようにする
+          const webSetup = (open) => (!WEB ? '' : '<details class="ai-note"' + (open ? ' open' : '') + ' style="margin-top:8px"><summary><b>Ollama の設定（ブラウザ版で、最初に1回だけ必要）</b></summary>' +
+            '<div style="margin-top:6px;line-height:1.9">① <button type="button" class="btn sm" data-a="open" data-url="https://ollama.com/download">Ollama をダウンロード</button>して、インストール・起動します。<br>' +
+            '② このページからの接続を許可する設定です。Windows の「PowerShell」を開き、次の1行を貼り付けて Enter を押します。<br>' +
+            '<code id="olCmd" style="display:block;margin:4px 0;padding:6px 8px;word-break:break-all;user-select:all">[Environment]::SetEnvironmentVariable(\'OLLAMA_ORIGINS\',\'' + esc(root.location.origin) + '\',\'User\')</code>' +
+            '<button type="button" class="btn sm" data-a="copycmd">コピー</button><br>' +
+            '③ Ollama を一度終了し（画面右下のタスクトレイの Ollama アイコン → 「Quit Ollama」）、もう一度起動します。<br>' +
+            '④ <button type="button" class="btn sm" data-a="olrecheck">もう一度確認</button> を押します。ブラウザが<b>「ローカルネットワーク上の機器の検索と接続」</b>の許可を求めたら、<b>「許可」</b>を選んでください（この PC の Ollama と話すための許可です）。</div></details>');
           if (!st.running) {
-            el.innerHTML = '<span style="color:var(--danger)">Ollama が起動していません。</span>';
-            body.innerHTML = '<div class="opt-note">① <button type="button" class="btn sm" data-a="open" data-url="https://ollama.com/download">Ollama をダウンロード</button>（インストールして起動） → ② このボタンで再確認：<button type="button" class="btn sm" data-a="olrecheck">もう一度確認</button></div>';
+            const why = st.reason === 'cors'
+              ? 'Ollama は起動していますが、このページからの接続が許可されていません。下の設定（②③）を行ってください。'
+              : (WEB ? 'Ollama に接続できません。起動していない、または、ブラウザが「ローカルネットワークへの接続」を許可していない可能性があります。' : 'Ollama が起動していません。');
+            el.innerHTML = '<span style="color:var(--danger)">' + esc(why) + '</span>';
+            body.innerHTML = WEB ? webSetup(true) : '<div class="opt-note">① <button type="button" class="btn sm" data-a="open" data-url="https://ollama.com/download">Ollama をダウンロード</button>（インストールして起動） → ② このボタンで再確認：<button type="button" class="btn sm" data-a="olrecheck">もう一度確認</button></div>';
             return;
           }
           el.innerHTML = '<span style="color:var(--ok)">Ollama は起動しています（v' + esc(st.version) + '）。</span>';
@@ -304,7 +323,7 @@
             : '<div class="opt-note">ダウンロード済みのモデルがありません。下から選んでダウンロードしてください。</div>') +
             '<div class="dlg-field"><label class="l">モデルをダウンロード（この PC に保存されます）</label>' + RECOMMENDED.map((m) => '<div style="display:flex;gap:8px;align-items:center;margin:4px 0"><button type="button" class="btn sm" data-a="pull" data-model="' + m[0] + '">ダウンロード</button><span style="font-size:12.5px"><b>' + m[0] + '</b>　' + esc(m[1]) + '</span></div>').join('') +
             '<div class="ai-status" id="olPull"></div></div>' +
-            '<div class="opt-note">小型モデルは、クラウドの AI より、まとめ・図解の品質が下がることがあります。長い教材は、コンテキスト長を大きくしてください。</div>';
+            '<div class="opt-note">小型モデルは、クラウドの AI より、まとめ・図解の品質が下がることがあります。長い教材は、コンテキスト長を大きくしてください。パソコンの性能によっては、文章が出てくるまで数分かかることがあります。</div>' + webSetup(false);
         }
 
         form.addEventListener('click', async (e) => {
@@ -312,10 +331,13 @@
           if (!b) return;
           const a = b.dataset.a, c = cfg();
           if (a === 'pick') { c.provider = b.dataset.p; models = []; save(); renderGrid(); renderPanel(); say(''); if (c.provider === 'gemini' && ai.keys.gemini) loadModels(true); if (c.provider === 'openai' && c.openai.model === '' && ai.keys.openai) loadModels(true); }
-          else if (a === 'open') root.lnDesktop.openExternal(b.dataset.url);
-          else if (a === 'savekey') {
+          else if (a === 'open') openExternal(b.dataset.url);
+          else if (a === 'copycmd') {
+            const t = ($('#olCmd', form) || {}).textContent || '';
+            try { await root.navigator.clipboard.writeText(t); say('コピーしました。PowerShell に貼り付けてください。'); } catch (e) { say('コピーできませんでした。上の文字を、選択してコピーしてください。', true); }
+          } else if (a === 'savekey') {
             const inp = $('#kKey', form), r = await D.setKey(b.dataset.p, inp.value.trim());
-            if (r.ok) { inp.value = ''; say('API キーを保存しました。'); await refreshStatus(); renderPanel(); if (b.dataset.p === 'gemini') loadModels(); } else say(r.error, true);
+            if (r.ok) { inp.value = ''; say(r.note || 'API キーを保存しました。'); await refreshStatus(); renderPanel(); if (b.dataset.p === 'gemini') loadModels(); } else say(r.error, true);
           } else if (a === 'clearkey') { await D.clearKey(b.dataset.p); await refreshStatus(); renderPanel(); say('API キーを削除しました。'); }
           else if (a === 'models') { c[c.provider].model = ($('#kModel', form) || {}).value || c[c.provider].model; save(); loadModels(); }
           else if (a === 'olrecheck') renderOllama();
@@ -341,13 +363,15 @@
         });
         form.addEventListener('change', (e) => {
           const c = cfg(), t = e.target, p = c.provider;
-          if (t.id === 'kModelSel') { c[p].model = t.value; save(); }
+          if (t.id === 'kRemember' && WEB) { LN.webAi.setRemember(t.checked); say(t.checked ? 'このブラウザにキーを記憶します。' : 'キーを記憶しません。ブラウザを閉じると、キーを忘れます。'); }
+          else if (t.id === 'kModelSel') { c[p].model = t.value; save(); }
           else if (t.id === 'kModel') { c[p].model = t.value.trim(); save(); }
           else if (t.id === 'kVision') { c[p].vision = t.checked; save(); }
           else if (t.id === 'kNumCtx') { c.ollama.numCtx = parseInt(t.value, 10); save(); }
           else if (t.id === 'kBase') { c.openai.baseUrl = t.value.trim(); save(); }
           else if (t.id === 'kPreset') { c.openai.preset = t.value; if (PRESETS[t.value][1]) c.openai.baseUrl = PRESETS[t.value][1]; save(); models = []; renderPanel(); }
         });
+        if (WEB && !cfg().provider) { cfg().provider = recommended(); save(); } // 初めてなら、この端末におすすめの AI を、あらかじめ選んでおく（変更できる）
         renderGrid();
         renderPanel();
         const c0 = cfg();
@@ -387,7 +411,7 @@
 
     const dlgPromise = U.ask({
       title: '教材から、まとめを作る', wide: true, hideOk: true, cancelText: '閉じる',
-      body: '<div class="ai-note">「' + esc(sc.subject.name) + '」' + (sc.unit ? '／「' + esc(sc.unit.name) + '」' : '') + ' のノートを作ります。教材（PowerPoint・PDF・Word・画像・動画・字幕・テキスト）を追加してください。ファイルはこのパソコンの中で読み取り、「生成する」を押したときだけ AI に送信されます。</div>' +
+      body: '<div class="ai-note">「' + esc(sc.subject.name) + '」' + (sc.unit ? '／「' + esc(sc.unit.name) + '」' : '') + ' のノートを作ります。教材（PowerPoint・PDF・Word・画像・動画・字幕・テキスト）を追加してください。ファイルは' + (WEB ? 'この端末' : 'このパソコン') + 'の中で読み取り、「生成する」を押したときだけ AI に送信されます。</div>' +
         '<div class="ai-drop" id="mDrop">ここにファイルをドラッグ＆ドロップ、または <button type="button" class="btn sm" id="mPick">ファイルを選ぶ</button><br><span style="font-size:11.5px;color:var(--text-3)">' + (ai.provider() === 'gemini' ? '音声（mp3・m4a など）と動画は、話している内容も読み取れます（Gemini）。' : '動画は、画面の切り替わりごとの画像を取り出します（音声は文字起こししません。字幕 .srt/.vtt を一緒に追加すると話の内容も反映できます）。') + '</span></div>' +
         (ai.provider() === 'gemini' ? '<div class="dlg-field"><label class="l">動画の扱い（先に選んでから追加してください）</label><select id="mVideo">' + opt([['full', '映像と音声をそのまま Gemini に渡す（話の内容も反映・おすすめ）'], ['frames', '画面の代表フレームだけ（軽い・音声は読まない）']], 'full') + '</select></div>' : '') +
         '<input type="file" id="mFile" multiple accept="' + M.ACCEPT + '" hidden><div class="ai-files" id="mFiles"></div>' +
@@ -709,7 +733,9 @@
     const messages = [{ role: 'user', content }];
     if (prev) messages.push({ role: 'assistant', content: prev.markdown }, { role: 'user', content: '次の修正を反映して、プリント全文（=== 解答 === 以降も含めて）を出力し直してください。\n' + refineText });
 
-    const entry = prev || { id: LN.uid(), examId: exam.id, title: (request.split('\n')[0] || 'プリント').slice(0, 26), request, markdown: '', createdAt: Date.now(), updatedAt: Date.now() };
+    // 題名は、依頼の最初の一文（長ければ、26文字で「…」）。文の途中で切れて読みにくくならないように
+    const firstLine = (request.split('\n')[0] || '').trim(), firstSentence = firstLine.split(/[。．.！!？?]/)[0].trim() || firstLine;
+    const entry = prev || { id: LN.uid(), examId: exam.id, title: (firstSentence.length > 26 ? firstSentence.slice(0, 25) + '…' : firstSentence) || 'プリント', request, markdown: '', createdAt: Date.now(), updatedAt: Date.now() };
     if (!prev) { st.aiSheets.push(entry); }
     const before = prev ? prev.markdown : '';
     cs.selected = entry.id; o.customId = entry.id; entry.markdown = prev ? prev.markdown : '';

@@ -231,6 +231,7 @@ dialog { border: 0; border-radius: var(--r-lg); padding: 0; background: var(--pa
 dialog.wide { width: min(760px, 94vw); }
 dialog::backdrop { background: rgba(20, 20, 24, .45); }
 .dlg-form { padding: 22px 24px 18px; display: flex; flex-direction: column; gap: 14px; max-height: 88vh; overflow-y: auto; }
+.dlg-form > * { flex-shrink: 0; } /* 中身が長いと、自分でスクロールする部品（AI の出力欄など）が、ぺしゃんこに縮まないように。ダイアログ全体がスクロールする */
 .dlg-form h3 { margin: 0; font-size: 17px; }
 .dlg-msg { margin: 0; color: var(--text-2); line-height: 1.7; font-size: 13.5px; }
 .dlg-field label.l { display: block; font-size: 12px; font-weight: 700; color: var(--text-2); margin-bottom: 4px; }
@@ -322,6 +323,7 @@ dialog select { width: 100%; }
 .prov-card.on { border-color: var(--accent); background: var(--accent-soft); }
 .prov-tag { align-self: flex-start; font-size: 10.5px; font-weight: 800; padding: 0 7px; border-radius: 99px; background: var(--line-2); color: var(--text-2); }
 .prov-tag.free { background: var(--ok-soft); color: var(--ok); }
+.prov-tag.rec { background: var(--accent-soft); color: var(--accent-text); }
 
 /* ---------- 表示の設定 ---------- */
 .th-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }

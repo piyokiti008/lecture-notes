@@ -2,8 +2,9 @@
 <html lang="ja">
 <head>
 <meta charset="utf-8">
-<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'self' https://accounts.google.com/gsi/client; style-src 'self' 'unsafe-inline' https://accounts.google.com/gsi/style; img-src 'self' data: blob:; media-src blob:; connect-src https://docs.google.com https://www.googleapis.com https://identitytoolkit.googleapis.com https://accounts.google.com/gsi/; object-src 'none'; base-uri 'none'; form-action 'none'; frame-src https://accounts.google.com/gsi/">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'self' https://accounts.google.com/gsi/client; style-src 'self' 'unsafe-inline' https://accounts.google.com/gsi/style; img-src 'self' data: blob:; media-src blob:; connect-src https://docs.google.com https://www.googleapis.com https://identitytoolkit.googleapis.com https://accounts.google.com/gsi/ https://generativelanguage.googleapis.com http://127.0.0.1:11434 http://localhost:11434; object-src 'none'; base-uri 'none'; form-action 'none'; frame-src https://accounts.google.com/gsi/">
 <meta name="referrer" content="no-referrer">
+<meta name="description" content="大学の講義メモを、教科・単元ごとに書きためて、考査前にはプリントにできるノート。無料・ダウンロード不要。ノートは自分の Google ドライブに保存されます。">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, interactive-widget=resizes-content">
 <script src="js/theme.js"></script>
 <title>講義ノート</title>
@@ -15,21 +16,158 @@
 <link rel="stylesheet" href="css/landing.css">
 </head>
 <body>
-<!-- ホームページ（アプリの説明と、パソコン版／スマホ版の選択）。ログイン前の人にだけ見せる（表示は theme.js が html の data-landing で決める） -->
+<!-- ホームページ（アプリの説明・サンプル画面のスライド・パソコン版／スマホ版の選択）。ログイン前の人にだけ見せる（表示は theme.js が html の data-landing で決める） -->
 <div class="landing" id="landing">
   <div class="ld-in">
-    <header class="ld-head">
-      <span class="ld-logo"><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><path d="M5 4h10a3 3 0 0 1 3 3v13H8a3 3 0 0 1-3-3V4z"/><path d="M9 9h6M9 13h6"/></svg></span>
-      <span class="ld-name">講義ノート</span>
+    <header class="ld-hero">
+      <span class="ld-app-icon" aria-hidden="true"><svg class="i" viewBox="0 0 24 24"><path d="M5 4h10a3 3 0 0 1 3 3v13H8a3 3 0 0 1-3-3V4z"/><path d="M9 9h6M9 13h6"/></svg></span>
+      <div class="ld-hero-main">
+        <p class="ld-name">講義ノート</p>
+        <h1 class="ld-title"><span class="nw">講義のメモを、教科ごとに。</span><br><span class="nw">考査前は、ボタンひとつで</span><span class="nw">プリントに。</span></h1>
+        <ul class="ld-badges" aria-label="特長">
+          <li>無料で使える</li><li>ダウンロード不要</li><li>ノートは自分の Google ドライブに保存</li><li>AI でまとめも作れる</li>
+        </ul>
+        <div class="ld-cta">
+          <button type="button" class="ld-go" data-ld="pc"><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="4" width="18" height="12" rx="2"/><path d="M8 20h8M12 16v4"/></svg>パソコン版ではじめる</button>
+          <button type="button" class="ld-go" data-ld="phone"><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><rect x="7" y="2.5" width="10" height="19" rx="2.5"/><path d="M11 18.5h2"/></svg>スマホ版ではじめる</button>
+        </div>
+        <p class="ld-cta-note">押すと、Google のログイン画面が開きます。</p>
+        <div class="ld-msg" id="ldMsg" role="alert" hidden></div>
+      </div>
     </header>
-    <h1 class="ld-title"><span class="nw">講義のメモを、教科ごとに。</span><br><span class="nw">考査前は、ボタンひとつで</span><span class="nw">プリントに。</span></h1>
-    <p class="ld-lead">大学の講義を、教科・単元ごとに書きためて、考査の前には範囲を選ぶだけで「まとめ」や「練習問題」のプリントにできるノートです。</p>
-    <div class="ld-feats">
-      <div class="ld-feat"><b>書くだけで整理</b><span>教科と単元に分けて、講義メモを書きためます。<code>==重要==</code> <code>{{穴埋め}}</code> <code>用語 :: 説明</code> <code>Q:</code>/<code>A:</code> の印をつけるだけで、あとから集められます。</span></div>
-      <div class="ld-feat"><b>考査前はプリントに</b><span>範囲の単元を選ぶと、まとめ・穴埋め・一問一答・用語テストのプリントができます。そのまま印刷や PDF 保存ができます。</span></div>
-      <div class="ld-feat"><b>どの端末でも続きから</b><span>Google でログインすると、ノートがあなた自身の Google ドライブに自動で保存されます。パソコンでもスマホでも、同じノートを開けます。</span></div>
-    </div>
-    <h2 class="ld-q">どちらで使いますか？</h2>
+
+    <section class="ld-show" aria-labelledby="ldShowTitle">
+      <h2 class="ld-h2" id="ldShowTitle">こんなアプリです</h2>
+      <div class="ld-tabs" id="ldTabs" role="group" aria-label="見たい画面を選ぶ">
+        <button type="button" class="ld-tab" aria-current="true">書く</button>
+        <button type="button" class="ld-tab" aria-current="false">覚える</button>
+        <button type="button" class="ld-tab" aria-current="false">まとめる</button>
+        <button type="button" class="ld-tab" aria-current="false">プリント</button>
+        <button type="button" class="ld-tab" aria-current="false">AI で教材から</button>
+        <button type="button" class="ld-tab" aria-current="false">AI おまかせ</button>
+        <button type="button" class="ld-tab" aria-current="false">スマホで</button>
+        <button type="button" class="ld-tab" aria-current="false">見た目</button>
+        <button type="button" class="ld-tab" aria-current="false">保存</button>
+      </div>
+      <div class="ld-stage">
+        <button type="button" class="ld-arrow prev" id="ldPrev" aria-label="前の画面" disabled><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><path d="M15 5l-7 7 7 7"/></svg></button>
+        <div class="ld-track" id="ldTrack" role="region" aria-roledescription="スライド" aria-label="サンプル画面" tabindex="0">
+
+          <article class="ld-slide" role="group" aria-roledescription="スライド" aria-label="1 / 9　書く">
+            <div class="ld-media"><figure class="ld-win"><div class="ld-win-bar" aria-hidden="true"><i></i><i></i><i></i></div>
+              <button type="button" class="ld-zoom" aria-label="この画面を拡大して見る"><img src="img/showcase/pc-notes.webp" width="1920" height="1200" loading="lazy" decoding="async" draggable="false" alt="パソコン版のノート画面。左に書いた文章、右にきれいに整えられた表示が並び、重要な語に黄色い印、穴埋めの語に青い下線が付いている。"></button></figure></div>
+            <div class="ld-cap"><span class="ld-step">1 / 9</span>
+              <h3>講義のメモを、教科・単元ごとに書きためる</h3>
+              <p>左に書くと、右にきれいな表示がすぐ出ます。<code>==重要==</code> <code>{{穴埋め}}</code> <code>用語 :: 説明</code> <code>Q:</code>／<code>A:</code> の印を付けるだけで、あとから自動で集められます。</p>
+              <ul class="ld-pts"><li>印はボタンひとつで入れられます</li><li>表・数式・画像・図解も使えます</li></ul></div>
+          </article>
+
+          <article class="ld-slide" role="group" aria-roledescription="スライド" aria-label="2 / 9　覚える">
+            <div class="ld-media"><figure class="ld-win"><div class="ld-win-bar" aria-hidden="true"><i></i><i></i><i></i></div>
+              <button type="button" class="ld-zoom" aria-label="この画面を拡大して見る"><img src="img/showcase/pc-study.webp" width="1920" height="1200" loading="lazy" decoding="async" draggable="false" alt="暗記モードの画面。穴埋めの語が青い四角で隠れていて、1か所だけ答えが表示されている。"></button></figure></div>
+            <div class="ld-cap"><span class="ld-step">2 / 9</span>
+              <h3>「暗記モード」で、答えを隠して確認</h3>
+              <p>ボタンを押すと、穴埋めの語と Q&amp;A の答えが隠れます。クリック（タップ）すると答えが出るので、赤シートのように、ひとりでテストできます。</p>
+              <ul class="ld-pts"><li>ノートを書いたら、そのまま暗記にも使えます</li></ul></div>
+          </article>
+
+          <article class="ld-slide" role="group" aria-roledescription="スライド" aria-label="3 / 9　まとめる">
+            <div class="ld-media"><figure class="ld-win"><div class="ld-win-bar" aria-hidden="true"><i></i><i></i><i></i></div>
+              <button type="button" class="ld-zoom" aria-label="この画面を拡大して見る"><img src="img/showcase/pc-exam.webp" width="1920" height="1200" loading="lazy" decoding="async" draggable="false" alt="考査対策の画面。範囲の単元を選ぶと、重要ポイント・用語・Q&Aなどの数が表示され、単元ごとのまとめを書ける。"></button></figure></div>
+            <div class="ld-cap"><span class="ld-step">3 / 9</span>
+              <h3>考査の範囲を選ぶだけで、要点が集まる</h3>
+              <p>考査ごとに範囲の単元を選ぶと、重要ポイント・用語・Q&amp;A・穴埋めの数がひと目で分かります。単元のまとめは、ノートからワンボタンで下書きを作って、自分の言葉に直せます。</p>
+              <ul class="ld-pts"><li>自分でまとめを書かなくても、要点は自動で集まります</li></ul></div>
+          </article>
+
+          <article class="ld-slide" role="group" aria-roledescription="スライド" aria-label="4 / 9　プリント">
+            <div class="ld-media"><figure class="ld-win"><div class="ld-win-bar" aria-hidden="true"><i></i><i></i><i></i></div>
+              <button type="button" class="ld-zoom" aria-label="この画面を拡大して見る"><img src="img/showcase/pc-print.webp" width="1920" height="1200" loading="lazy" decoding="async" draggable="false" alt="プリント作成の画面。左で種類や用紙を選ぶと、右に穴埋め問題のプリントがA4の見た目で表示される。"></button></figure></div>
+            <div class="ld-cap"><span class="ld-step">4 / 9</span>
+              <h3>そのまま印刷できる、プリントに</h3>
+              <p>「まとめ」「穴埋め問題」「一問一答」「用語テスト」から選べます。解答の有無、文字の大きさ、用紙（A4／B5／A5）、1段／2段を選んで、印刷や PDF 保存ができます。</p>
+              <ul class="ld-pts"><li>どの配色でも、印刷は白い紙・黒い文字です</li></ul></div>
+          </article>
+
+          <article class="ld-slide" role="group" aria-roledescription="スライド" aria-label="5 / 9　AI で教材から">
+            <div class="ld-media"><figure class="ld-win"><div class="ld-win-bar" aria-hidden="true"><i></i><i></i><i></i></div>
+              <button type="button" class="ld-zoom" aria-label="この画面を拡大して見る"><img src="img/showcase/pc-ai-note.webp" width="1920" height="1200" loading="lazy" decoding="async" draggable="false" alt="AIが、読み込んだ教材（PowerPoint）の内容を、ノートの書き方に整えて文章にしている画面。"></button></figure></div>
+            <div class="ld-cap"><span class="ld-step">5 / 9</span>
+              <h3>配られた資料を読み込ませて、ノートに</h3>
+              <p>PowerPoint・PDF・Word・画像・テキスト、そして音声ファイルも読み込めます。AI が要点を整理して、このアプリの書き方でノートの下書きを作ります。保存する前に、必ず自分で確認できます。</p>
+              <ul class="ld-pts"><li>音声の文字起こしと要約は、Gemini を使うときに使えます</li></ul>
+              <p class="ld-fine">AI は、ご自身の API キー（Gemini は無料枠あり）か、パソコンにインストールする Ollama で動かします。料金はかかりません。Gemini の無料枠では、送った内容が Google の改善に使われることがあります。</p></div>
+          </article>
+
+          <article class="ld-slide" role="group" aria-roledescription="スライド" aria-label="6 / 9　AI おまかせ">
+            <div class="ld-media"><figure class="ld-win"><div class="ld-win-bar" aria-hidden="true"><i></i><i></i><i></i></div>
+              <button type="button" class="ld-zoom" aria-label="この画面を拡大して見る"><img src="img/showcase/pc-ai-sheet.webp" width="1920" height="1200" loading="lazy" decoding="async" draggable="false" alt="「AIおまかせ」の画面。依頼を文章で書くと、右に小テストのプリントができあがる。"></button></figure></div>
+            <div class="ld-cap"><span class="ld-step">6 / 9</span>
+              <h3>自分専用の練習問題を、文章でお願い</h3>
+              <p>「選択式3問と記述式1問の小テスト。少し難しめで、解答と解説つき」のように頼むだけ。範囲のノートを材料に、AI がプリントを作ります。「もう少し難しくして」と、あとから直してもらうこともできます。</p>
+              <ul class="ld-pts"><li>AI が作った内容は、印刷前に確認してください</li></ul></div>
+          </article>
+
+          <article class="ld-slide" role="group" aria-roledescription="スライド" aria-label="7 / 9　スマホで">
+            <div class="ld-media"><div class="ld-phones">
+              <figure class="ld-phone"><button type="button" class="ld-zoom" aria-label="この画面を拡大して見る"><img src="img/showcase/phone-list.webp" width="780" height="1688" loading="lazy" decoding="async" draggable="false" alt="スマホ版のノート一覧。教科の中の単元とノートが縦に並ぶ。"></button><figcaption>ノート一覧</figcaption></figure>
+              <figure class="ld-phone"><button type="button" class="ld-zoom" aria-label="この画面を拡大して見る"><img src="img/showcase/phone-editor.webp" width="780" height="1688" loading="lazy" decoding="async" draggable="false" alt="スマホ版のノート本文。下に、書式のボタンが並んだ丸いバーがある。"></button><figcaption>ノート本文</figcaption></figure>
+              <figure class="ld-phone"><button type="button" class="ld-zoom" aria-label="この画面を拡大して見る"><img src="img/showcase/phone-exam.webp" width="780" height="1688" loading="lazy" decoding="async" draggable="false" alt="スマホ版の考査対策。単元ごとのまとめが縦に並ぶ。"></button><figcaption>考査対策</figcaption></figure>
+            </div></div>
+            <div class="ld-cap"><span class="ld-step">7 / 9</span>
+              <h3>スマホでは、1画面ずつ、片手で</h3>
+              <p>教科 → ノート → 本文と、1画面にひとつずつ表示します。下のバーで「ノート」「考査対策」「メニュー」を切り替え、書式のボタンは、本文の下に浮かぶバーにまとめてあります。</p>
+              <ul class="ld-pts"><li>電車の中でも、授業の合間でも</li><li>パソコンで書いたノートの続きも、そのまま開けます</li></ul></div>
+          </article>
+
+          <article class="ld-slide" role="group" aria-roledescription="スライド" aria-label="8 / 9　見た目">
+            <div class="ld-media"><div class="ld-phones four">
+              <figure class="ld-phone"><button type="button" class="ld-zoom" aria-label="この画面を拡大して見る"><img src="img/showcase/phone-theme-moss-light.webp" width="780" height="1688" loading="lazy" decoding="async" draggable="false" alt="やわらかい緑を基調にした配色（ナチュラル）のスマホ画面。"></button><figcaption>ナチュラル</figcaption></figure>
+              <figure class="ld-phone"><button type="button" class="ld-zoom" aria-label="この画面を拡大して見る"><img src="img/showcase/phone-theme-navy-dark.webp" width="780" height="1688" loading="lazy" decoding="async" draggable="false" alt="濃い青のダークモードの配色（ディープブルー）のスマホ画面。"></button><figcaption>ダークモード</figcaption></figure>
+              <figure class="ld-phone"><button type="button" class="ld-zoom" aria-label="この画面を拡大して見る"><img src="img/showcase/phone-theme-sun-light.webp" width="780" height="1688" loading="lazy" decoding="async" draggable="false" alt="黄色を基調にした配色（フォーカスイエロー）のスマホ画面。"></button><figcaption>フォーカスイエロー</figcaption></figure>
+              <figure class="ld-phone"><button type="button" class="ld-zoom" aria-label="この画面を拡大して見る"><img src="img/showcase/phone-theme-mint-light.webp" width="780" height="1688" loading="lazy" decoding="async" draggable="false" alt="ミントグリーンを基調にした配色（リラックス）のスマホ画面。"></button><figcaption>リラックス</figcaption></figure>
+            </div></div>
+            <div class="ld-cap"><span class="ld-step">8 / 9</span>
+              <h3>10 種類の配色と、ダークモード</h3>
+              <p>集中したいとき、暗記したいとき、夜に使うとき、屋外で見えにくいとき。場面に合わせて、配色を選べます。明るさ・文字の大きさ・角の丸みも、好みに変えられます。</p>
+              <ul class="ld-pts"><li>夜は、自動で目にやさしい配色にもできます</li><li>設定は、パソコンとスマホで別々に選べます</li></ul></div>
+          </article>
+
+          <article class="ld-slide" role="group" aria-roledescription="スライド" aria-label="9 / 9　保存">
+            <div class="ld-media">
+              <svg class="ld-illus" viewBox="0 0 560 330" role="img" aria-label="スマホとパソコンが、あなた自身の Google ドライブとつながっているようす。運営にはノートの中身が見えない。">
+                <g class="sv-line"><path d="M138 196 L226 150"/><path d="M408 196 L334 150"/></g>
+                <g transform="translate(205 28) scale(6)"><path class="sv-cloud" d="M19.35 10.04C18.67 6.59 15.64 4 12 4 9.11 4 6.6 5.64 5.35 8.04 2.34 8.36 0 10.91 0 14c0 3.31 2.69 6 6 6h13c2.76 0 5-2.24 5-5 0-2.64-2.05-4.78-4.65-4.96z"/></g>
+                <path class="sv-ok" d="M258 118 l16 16 l30 -34"/>
+                <g class="sv-dev"><rect x="62" y="150" width="76" height="140" rx="14"/><path d="M90 276 h20"/></g>
+                <g class="sv-dev"><rect x="408" y="150" width="120" height="82" rx="8"/><path d="M394 250 h148"/></g>
+                <g class="sv-t"><text x="100" y="316" text-anchor="middle">スマホ</text><text x="468" y="316" text-anchor="middle">パソコン</text><text x="280" y="214" text-anchor="middle" class="b">あなた自身の Google ドライブ</text></g>
+                <g class="sv-lock"><rect x="170" y="238" width="220" height="40" rx="20"/><text x="280" y="263" text-anchor="middle">運営には、中身が見えません</text></g>
+              </svg>
+            </div>
+            <div class="ld-cap"><span class="ld-step">9 / 9</span>
+              <h3>どの端末でも、続きから</h3>
+              <p>Google でログインすると、ノートが、あなた自身の Google ドライブに自動で保存されます。パソコンでもスマホでも、同じノートを続きから開けます。運営（作者）は、ノートの中身を読めません。</p>
+              <ul class="ld-pts"><li>使う権限は「このアプリが作ったファイルだけ」です</li><li>ログインしなくても、この端末の中だけで使えます</li></ul></div>
+          </article>
+
+        </div>
+        <button type="button" class="ld-arrow next" id="ldNext" aria-label="次の画面"><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><path d="M9 5l7 7-7 7"/></svg></button>
+      </div>
+      <p class="ld-sample-note">※ 画面は、サンプルのデータで撮影したものです（画像をタップ・クリックすると拡大できます）。</p>
+    </section>
+
+    <section class="ld-about">
+      <h2 class="ld-h2">講義ノートについて</h2>
+      <p class="ld-lead">大学の講義を、教科・単元ごとに書きためて、考査の前には範囲を選ぶだけで「まとめ」や「練習問題」のプリントにできるノートです。</p>
+      <div class="ld-feats">
+        <div class="ld-feat"><b>書くだけで整理</b><span>教科と単元に分けて、講義メモを書きためます。<code>==重要==</code> <code>{{穴埋め}}</code> <code>用語 :: 説明</code> <code>Q:</code>/<code>A:</code> の印をつけるだけで、あとから集められます。</span></div>
+        <div class="ld-feat"><b>考査前はプリントに</b><span>範囲の単元を選ぶと、まとめ・穴埋め・一問一答・用語テストのプリントができます。そのまま印刷や PDF 保存ができます。</span></div>
+        <div class="ld-feat"><b>どの端末でも続きから</b><span>Google でログインすると、ノートがあなた自身の Google ドライブに自動で保存されます。パソコンでもスマホでも、同じノートを開けます。</span></div>
+      </div>
+    </section>
+
+    <h2 class="ld-q">さっそく、使ってみましょう。どちらで使いますか？</h2>
     <div class="ld-choose">
       <button type="button" class="ld-card" data-ld="pc">
         <svg class="i ld-ico" viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="4" width="18" height="12" rx="2"/><path d="M8 20h8M12 16v4"/></svg>
@@ -41,7 +179,7 @@
       </button>
     </div>
     <p class="ld-note">どちらかを選ぶと、Google のログイン画面が開きます。あとから「メニュー」の設定で、いつでも切り替えられます。</p>
-    <div class="ld-msg" id="ldMsg" role="alert" hidden></div>
+    <div class="ld-msg" id="ldMsg2" role="alert" hidden></div>
     <div class="ld-privacy">
       <b>運営（このアプリの作者）に見えるもの：</b>ログインしたアカウントの一覧（メールアドレス・名前）だけです。<br>
       <b>運営に見えないもの：</b>ノートの中身。ノートは<b>あなた自身の Google ドライブ</b>に保存され、運営は読めません。<br>
@@ -65,6 +203,7 @@
 <script src="js/markdown.js"></script>
 <script src="js/materials.js"></script>
 <script src="js/sheets.js"></script>
+<script src="js/webai.js"></script>
 <script src="js/ai.js"></script>
 <script src="js/desktop.js"></script>
 <script src="js/feedback.js"></script>

@@ -1,24 +1,107 @@
-/* ホームページ（アプリの説明＋パソコン版／スマホ版の選択）。ログイン前の人にだけ見せる。
- * 色はテーマの変数を使うので、選んだテーマ・ダークにも合う。表示の切り替えは html の data-landing（on／off）。 */
+/* ホームページ（アプリの紹介・サンプル画面のスライド・パソコン版／スマホ版の選択）。ログイン前の人にだけ見せる。
+ * 色はテーマの変数を使うので、選んだテーマ・ダークにも合う（サンプル画面の画像だけは、いつもの明るい画面）。
+ * 表示の切り替えは html の data-landing（on／off）。 */
 .landing { display: none; }
 html[data-landing="on"] .landing { display: block; position: fixed; inset: 0; z-index: 90; overflow-y: auto; background: var(--bg); color: var(--text); -webkit-overflow-scrolling: touch; }
 html[data-landing="on"] #app, html[data-landing="on"] #print-root { display: none; }
 
-.ld-in { max-width: 860px; margin: 0 auto; padding: 28px 22px 56px; }
-.ld-head { display: flex; align-items: center; gap: 10px; margin-bottom: 26px; }
-.ld-logo { width: 34px; height: 34px; border-radius: var(--r-sm); background: var(--accent); color: var(--on-accent); display: grid; place-items: center; }
-.ld-logo svg.i { width: 20px; height: 20px; }
-.ld-name { font-size: 18px; font-weight: 800; letter-spacing: .02em; }
-.ld-title { margin: 0 0 14px; font-size: clamp(26px, 5.4vw, 40px); line-height: 1.35; font-weight: 800; letter-spacing: .01em; }
-.ld-lead { margin: 0 0 26px; font-size: 15.5px; line-height: 1.9; color: var(--text-2); max-width: 640px; }
+.ld-in { max-width: 1040px; margin: 0 auto; padding: 24px 22px 60px; }
 
-.ld-feats { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; margin-bottom: 34px; }
+/* ---- 最初に見える部分（アプリのアイコン・名前・ひとこと・はじめるボタン） ---- */
+.ld-hero { display: flex; align-items: center; gap: 24px; margin-bottom: 22px; }
+.ld-app-icon { flex: none; width: 96px; height: 96px; border-radius: 24px; background: var(--accent); color: var(--on-accent); display: grid; place-items: center; box-shadow: var(--shadow); }
+.ld-app-icon svg.i { width: 54px; height: 54px; stroke-width: 1.7; }
+.ld-hero-main { min-width: 0; flex: 1; }
+.ld-name { margin: 0 0 4px; font-size: 15px; font-weight: 800; letter-spacing: .06em; color: var(--accent-text); }
+.ld-title { margin: 0; font-size: clamp(25px, 4.6vw, 38px); line-height: 1.38; font-weight: 800; letter-spacing: .01em; }
+.ld-title .nw { white-space: nowrap; }
+.ld-badges { list-style: none; display: flex; flex-wrap: wrap; gap: 8px; margin: 14px 0 18px; padding: 0; }
+.ld-badges li { font-size: 12.5px; font-weight: 700; padding: 4px 12px; border-radius: 99px; background: var(--accent-soft); color: var(--accent-text); }
+.ld-cta { display: flex; flex-wrap: wrap; gap: 12px; }
+.ld-go { display: inline-flex; align-items: center; justify-content: center; gap: 10px; min-height: 50px; padding: 0 24px; border-radius: 99px; border: 2px solid var(--accent); background: var(--panel); color: var(--accent-text); font-size: 15.5px; font-weight: 800; transition: transform .12s, background .12s; }
+.ld-go svg.i { width: 22px; height: 22px; stroke-width: 1.8; }
+.ld-go:hover:not(:disabled) { transform: translateY(-2px); }
+.ld-go.on { background: var(--accent); color: var(--on-accent); }
+.ld-go:disabled { opacity: .55; cursor: progress; }
+.ld-go.busy { opacity: 1; }
+.ld-cta-note { margin: 8px 2px 0; font-size: 12.5px; color: var(--text-3); }
+
+/* ---- サンプル画面のスライド ---- */
+.ld-h2 { margin: 0 0 12px; font-size: 20px; font-weight: 800; }
+.ld-show { margin: 0 0 36px; }
+.ld-tabs { position: relative; display: flex; gap: 8px; overflow-x: auto; padding: 2px 2px 12px; scrollbar-width: none; }
+.ld-tabs::-webkit-scrollbar { display: none; }
+.ld-tab { flex: none; padding: 7px 15px; border-radius: 99px; border: 1px solid var(--line); background: var(--panel); color: var(--text-2); font-size: 13px; font-weight: 700; }
+.ld-tab:hover { border-color: var(--accent); color: var(--accent-text); }
+.ld-tab[aria-current="true"] { background: var(--accent); border-color: var(--accent); color: var(--on-accent); }
+.ld-stage { position: relative; }
+.ld-track { position: relative; display: flex; gap: 14px; overflow-x: auto; overscroll-behavior-x: contain; scroll-snap-type: x mandatory; scrollbar-width: none; -webkit-overflow-scrolling: touch; cursor: grab; border-radius: var(--r-lg); outline-offset: 3px; }
+.ld-track::-webkit-scrollbar { display: none; }
+.ld-track.drag { scroll-snap-type: none; cursor: grabbing; user-select: none; }
+.ld-slide { flex: 0 0 100%; box-sizing: border-box; scroll-snap-align: start; display: grid; grid-template-columns: minmax(0, 1.55fr) minmax(0, 1fr); gap: 36px; align-items: center; min-height: 430px; padding: 28px 32px; background: var(--panel); border: 1px solid var(--line); border-radius: var(--r-lg); box-shadow: var(--shadow); }
+.ld-media { min-width: 0; }
+
+/* パソコンの画面：ウィンドウの枠つき */
+.ld-win { margin: 0; border-radius: 12px; overflow: hidden; border: 1px solid #d9d8d2; background: #fff; box-shadow: 0 12px 32px rgba(0,0,0,.16); }
+.ld-win-bar { display: flex; align-items: center; gap: 6px; height: 22px; padding: 0 10px; background: #ececf0; }
+.ld-win-bar i { width: 9px; height: 9px; border-radius: 50%; background: #c8c8d0; }
+.ld-zoom { display: block; width: 100%; padding: 0; border: 0; background: transparent; cursor: zoom-in; line-height: 0; }
+.ld-zoom img { display: block; width: 100%; height: auto; -webkit-user-drag: none; user-select: none; }
+
+/* スマホの画面：端末の枠つき */
+.ld-phones { display: flex; justify-content: center; align-items: flex-start; gap: 16px; }
+.ld-phone { flex: 0 1 190px; min-width: 0; margin: 0; text-align: center; }
+.ld-phones.four .ld-phone { flex-basis: 150px; }
+.ld-phone .ld-zoom { border-radius: 24px; border: 5px solid #232329; overflow: hidden; background: #232329; box-shadow: 0 10px 26px rgba(0,0,0,.2); }
+.ld-phone figcaption { margin-top: 9px; font-size: 12px; font-weight: 700; color: var(--text-2); line-height: 1.5; }
+
+/* 説明（キャプション） */
+.ld-cap { min-width: 0; }
+.ld-step { display: inline-block; padding: 2px 10px; border-radius: 99px; background: var(--accent-soft); color: var(--accent-text); font-size: 12px; font-weight: 800; letter-spacing: .04em; }
+.ld-cap h3 { margin: 10px 0 12px; font-size: 22px; line-height: 1.5; font-weight: 800; text-wrap: balance; word-break: auto-phrase; }
+.ld-cap p { margin: 0 0 12px; font-size: 14.5px; line-height: 1.95; color: var(--text-2); word-break: auto-phrase; }
+.ld-cap code { background: var(--md-soft); padding: 1px 6px; border-radius: 4px; font-size: 12.5px; white-space: nowrap; }
+.ld-pts { list-style: none; margin: 0 0 12px; padding: 0; }
+.ld-pts li { position: relative; padding: 0 0 0 22px; margin: 5px 0; font-size: 13.5px; line-height: 1.7; font-weight: 700; color: var(--text); }
+.ld-pts li::before { content: ""; position: absolute; left: 3px; top: .45em; width: 6px; height: 11px; border: solid var(--ok, var(--accent)); border-width: 0 2.5px 2.5px 0; transform: rotate(40deg); }
+.ld-cap .ld-fine { margin: 0; padding: 10px 12px; border-radius: var(--radius); background: var(--panel-2); border: 1px solid var(--line); font-size: 12px; line-height: 1.8; color: var(--text-3); }
+
+/* 保存（図） */
+.ld-illus { display: block; width: 100%; max-width: 520px; height: auto; margin: 0 auto; }
+.ld-illus .sv-line path { fill: none; stroke: var(--accent); stroke-width: 3; stroke-dasharray: 7 7; stroke-linecap: round; }
+.ld-illus .sv-cloud { fill: var(--accent-soft); stroke: var(--accent); stroke-width: .35; }
+.ld-illus .sv-ok { fill: none; stroke: var(--accent); stroke-width: 9; stroke-linecap: round; stroke-linejoin: round; }
+.ld-illus .sv-dev rect { fill: var(--panel-2); stroke: var(--text-2); stroke-width: 3; }
+.ld-illus .sv-dev path { fill: none; stroke: var(--text-2); stroke-width: 3; stroke-linecap: round; }
+.ld-illus .sv-t text { fill: var(--text-2); font-size: 15px; font-weight: 700; font-family: inherit; }
+.ld-illus .sv-t text.b { fill: var(--text); font-size: 17px; font-weight: 800; }
+.ld-illus .sv-lock rect { fill: var(--accent-soft); stroke: var(--accent); stroke-width: 2; }
+.ld-illus .sv-lock text { fill: var(--accent-text); font-size: 14px; font-weight: 800; font-family: inherit; }
+
+/* 左右の矢印（マウスのあるパソコンだけ） */
+.ld-arrow { position: absolute; top: 50%; z-index: 2; display: grid; place-items: center; width: 44px; height: 44px; margin-top: -22px; padding: 0; border: 1px solid var(--line); border-radius: 50%; background: var(--panel); color: var(--text); box-shadow: var(--shadow); }
+.ld-arrow svg.i { width: 22px; height: 22px; stroke-width: 2.2; }
+.ld-arrow.prev { left: -20px; }
+.ld-arrow.next { right: -20px; }
+.ld-arrow:hover:not(:disabled) { border-color: var(--accent); color: var(--accent-text); }
+.ld-arrow:disabled { opacity: .35; cursor: default; }
+.ld-sample-note { margin: 10px 2px 0; font-size: 12px; color: var(--text-3); line-height: 1.7; }
+
+/* 拡大表示 */
+.ld-lb { position: fixed; inset: 0; z-index: 100; display: grid; place-items: center; padding: 16px; background: rgba(10,10,14,.86); cursor: zoom-out; }
+.ld-lb img { max-width: min(96vw, 1500px); max-height: 92vh; width: auto; height: auto; border-radius: 10px; background: #fff; box-shadow: 0 18px 60px rgba(0,0,0,.5); }
+.ld-lb button { position: absolute; top: 12px; right: 12px; width: 46px; height: 46px; border: 0; border-radius: 50%; background: rgba(255,255,255,.92); color: #222; font-size: 26px; line-height: 1; }
+
+/* ---- 説明・選択 ---- */
+.ld-about { margin: 0 0 34px; }
+.ld-lead { margin: 0 0 20px; font-size: 15.5px; line-height: 1.9; color: var(--text-2); max-width: 680px; }
+.ld-feats { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; }
 .ld-feat { background: var(--panel); border: 1px solid var(--line); border-radius: var(--radius); padding: 16px 16px 18px; box-shadow: 0 1px 3px var(--shadow-c); }
 .ld-feat b { display: block; font-size: 15px; margin-bottom: 6px; color: var(--accent-text); }
 .ld-feat span { font-size: 13px; line-height: 1.8; color: var(--text-2); }
 .ld-feat code { background: var(--md-soft); padding: 1px 5px; border-radius: 4px; font-size: 12px; white-space: nowrap; }
 
-.ld-q { margin: 0 0 12px; font-size: 20px; font-weight: 800; }
+.ld-q { margin: 0 0 12px; font-size: 20px; font-weight: 800; line-height: 1.5; }
 .ld-choose { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
 .ld-card { position: relative; display: flex; flex-direction: column; align-items: flex-start; gap: 6px; text-align: left; padding: 20px 20px 22px; background: var(--panel); border: 2px solid var(--line); border-radius: var(--r-lg); box-shadow: var(--shadow); transition: border-color .12s, transform .12s; }
 .ld-card:hover:not(:disabled) { border-color: var(--accent); transform: translateY(-2px); }
@@ -37,14 +120,41 @@ html[data-landing="on"] #app, html[data-landing="on"] #print-root { display: non
 .ld-guest { margin: 18px 2px 0; font-size: 12.5px; color: var(--text-3); line-height: 1.8; }
 .ld-link { border: 0; background: transparent; padding: 0; font-size: 13px; font-weight: 700; color: var(--accent-text); text-decoration: underline; text-underline-offset: 3px; }
 
-.ld-title .nw { white-space: nowrap; }
+@media (prefers-reduced-motion: reduce) {
+  .ld-go, .ld-card { transition: none; }
+}
+
+/* マウスのない端末（スマホ・タブレット）は、指でスライドするので、矢印は出さない */
+@media (hover: none), (pointer: coarse) {
+  .ld-arrow { display: none; }
+  .ld-track { cursor: auto; }
+}
+
+@media (max-width: 900px) {
+  .ld-slide { grid-template-columns: 1fr; gap: 20px; min-height: 0; padding: 20px 20px 24px; align-content: start; }
+  .ld-cap h3 { font-size: 20px; margin-top: 8px; }
+  .ld-arrow.prev { left: 6px; }
+  .ld-arrow.next { right: 6px; }
+}
 
 @media (max-width: 760px) {
-  .ld-in { padding: 18px 16px 36px; }
-  .ld-head { margin-bottom: 16px; }
-  .ld-title { font-size: 24px; margin-bottom: 10px; }
-  .ld-lead { font-size: 14px; line-height: 1.8; margin-bottom: 16px; }
-  .ld-feats { grid-template-columns: 1fr; gap: 8px; margin-bottom: 22px; }
+  .ld-arrow { display: none; } /* 狭い画面では、指（またはマウスのドラッグ）と、上の見出しでスライドする */
+  .ld-in { padding: 18px 16px 40px; }
+  .ld-hero { flex-direction: column; align-items: flex-start; gap: 12px; margin-bottom: 20px; }
+  .ld-app-icon { width: 56px; height: 56px; border-radius: 15px; }
+  .ld-app-icon svg.i { width: 32px; height: 32px; }
+  .ld-title { font-size: 24px; }
+  .ld-badges { margin: 12px 0 14px; gap: 6px; }
+  .ld-badges li { font-size: 12px; padding: 3px 10px; }
+  .ld-cta { flex-direction: column; gap: 10px; width: 100%; }
+  .ld-go { width: 100%; }
+  .ld-slide { flex-basis: 90%; padding: 16px 16px 20px; }
+  .ld-phones { gap: 10px; }
+  .ld-phone .ld-zoom { border-width: 4px; border-radius: 18px; }
+  .ld-phone figcaption { font-size: 11px; }
+  .ld-phones.four .ld-phone:nth-child(4) { display: none; }
+  .ld-lead { font-size: 14px; line-height: 1.8; margin-bottom: 14px; }
+  .ld-feats { grid-template-columns: 1fr; gap: 8px; }
   .ld-feat { padding: 10px 14px 12px; }
   .ld-feat b { font-size: 14px; margin-bottom: 3px; }
   .ld-feat span { font-size: 12.5px; line-height: 1.7; }

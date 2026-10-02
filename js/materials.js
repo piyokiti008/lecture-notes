@@ -237,8 +237,8 @@
 
   /** 音声・動画ファイルは、中身を読まずに「ファイルの場所（トークン）」だけ AI（Gemini）へ渡す */
   async function mediaBlocks(file, kind, head, tokens) {
-    const B = root.lnDesktop;
-    if (!B || !B.mediaToken) throw new Error('この形式は、デスクトップ版でだけ扱えます');
+    const B = (root.lnDesktop && root.lnDesktop.mediaToken) ? root.lnDesktop : LN.webAi; // デスクトップ版は main プロセス、ブラウザ版は js/webai.js
+    if (!B || !B.mediaToken) throw new Error('この形式は、この環境では扱えません');
     const g = await B.mediaToken(file);
     if (!g) throw new Error('ファイルの場所を取得できませんでした。もう一度、ファイルを選び直してください。');
     const dur = await mediaDuration(file, kind === 'audio' ? 'audio' : 'video');
