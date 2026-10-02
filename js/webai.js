@@ -257,8 +257,8 @@
     try { await fetch(base + '/api/version', { mode: 'no-cors' }); return 'cors'; } catch (e) { return 'down'; }
   }
   const ollamaDown = async (base) => ((await ollamaReason(base)) === 'cors'
-    ? new ProviderError('cors', 'Ollama は起動していますが、このページからの接続が許可されていません。設定画面の「Ollama の設定」の手順（OLLAMA_ORIGINS）を行ってください。')
-    : new ProviderError('network', 'Ollama に接続できません。Ollama が起動していない、または、ブラウザが「ローカルネットワークへの接続」を許可していない可能性があります。'));
+    ? new ProviderError('cors', 'Ollama は起動していますが、このサイトからの接続が、まだ許可されていません。「メニュー」→「AIアシスタント」で「Ollama」を選び、案内に従って、1回だけ設定してください。')
+    : new ProviderError('network', 'Ollama に接続できません。Ollama が起動していない、または、ブラウザが「ローカルネットワークへの接続」を許可していない可能性があります。「メニュー」→「AIアシスタント」の案内を見てください。'));
 
   async function oCall(base, method, url, body, signal) {
     try { return await fetch(base + url, { method, headers: { 'content-type': 'application/json' }, body: body ? JSON.stringify(body) : undefined, signal }); }

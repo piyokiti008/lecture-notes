@@ -88,7 +88,7 @@
   /* ---------- AI の種類と設定 ---------- */
   const PROV = {
     gemini: { label: 'Google Gemini', tag: '無料', desc: (WEB ? 'インストール不要で、スマホ向き。' : '') + '高品質。PDF・画像・音声・動画もそのまま読めます。1 日に使える回数に上限があり、送った内容が Google の製品改善に使われることがあります。' },
-    ollama: { label: 'このPCで動かす（Ollama）', tag: '無料・オフライン', desc: (WEB ? 'パソコン向き。最初に1回だけ設定が必要です。' : '') + '内容が PC の外に出ません。性能はこの PC 次第です（3〜7GB ほどの AI をダウンロードします）。' },
+    ollama: { label: 'このPCで動かす（Ollama）', tag: '無料・オフライン', desc: (WEB ? 'パソコン向き。最初に1回だけ、案内つきの設定をします。' : '') + '内容が PC の外に出ません。性能はこの PC 次第です（3〜7GB ほどの AI をダウンロードします）。' },
     anthropic: { label: 'Anthropic Claude', tag: '有料', desc: '最高品質。使った分だけ、ご自身のキーに課金されます。' },
     openai: { label: 'その他（OpenAI 互換）', tag: '接続先による', desc: 'Groq（無料枠あり）・OpenRouter・LM Studio など。' },
   };
@@ -96,6 +96,21 @@
   const PROV_IDS = () => (WEB ? ['gemini', 'ollama'] : Object.keys(PROV)); // ブラウザ版で使える AI（通信先を限っているため）
   const recommended = () => (LN.theme && LN.theme.isPhone() ? 'gemini' : 'ollama'); // スマホは Gemini（インストール不要）、パソコンは Ollama
   const KEY_LINK = { gemini: 'https://aistudio.google.com/apikey', anthropic: 'https://console.anthropic.com/settings/keys', groq: 'https://console.groq.com/keys', openrouter: 'https://openrouter.ai/keys' };
+  /** 使っている OS（Ollama の接続の案内を、OS ごとに出し分ける） */
+  function osKind() {
+    const n = root.navigator || {}, ua = n.userAgent || '', pf = (n.userAgentData && n.userAgentData.platform) || n.platform || '';
+    if (/iphone|ipad|android/i.test(ua)) return 'other';
+    if (/mac/i.test(pf + ' ' + ua)) return 'mac';
+    if (/win/i.test(pf + ' ' + ua)) return 'win';
+    return 'other';
+  }
+  /** このサイトからの接続を Ollama に許可させるコマンド（ブラウザ版の Ollama の接続に、1回だけ必要）。
+   *  Windows は「ファイル名を指定して実行」（Win+R）に貼る1行：設定を保存し、Ollama を再起動し、新しい設定を引き継がせる（250文字以内） */
+  function ollamaCmd(os, origin) {
+    if (os === 'mac') return 'launchctl setenv OLLAMA_ORIGINS "' + origin + '"';
+    if (os === 'win') return 'cmd /c setx OLLAMA_ORIGINS "' + origin + '" & set "OLLAMA_ORIGINS=' + origin + '" & taskkill /f /im "ollama app.exe" /im ollama.exe & start "" "%LOCALAPPDATA%\\Programs\\Ollama\\ollama app.exe"';
+    return 'OLLAMA_ORIGINS="' + origin + '"';
+  }
   const RECOMMENDED = [['qwen3.5:4b', '標準（約 3.4GB・メモリ 8GB 以上）'], ['qwen3.5:2b', '軽量（約 2.7GB・メモリが少ない PC 向け）'], ['qwen3.5:9b', '高品質（約 6.6GB・メモリ 16GB 以上）']];
 
   function cfg() {
@@ -274,7 +289,7 @@
               '<div class="opt-note">「lite」が付くモデルは、無料で使える回数が多めです。回数の上限に達したら、少し待つか、liteのモデルに切り替えてください。</div>';
           } else if (p === 'ollama') {
             const o = c.ollama;
-            h = '<div class="ai-note"><b>完全無料・オフライン</b>：内容がこの PC の外へ出ません。まず <b>Ollama</b> をインストールして起動し、AI モデルをダウンロードします（下記）。</div>' +
+            h = '<div class="ai-note"><b>完全無料・オフライン</b>：内容がこの PC の外へ出ません。' + (WEB ? '次の3つを、上から順に行います（最初の1回だけ。できたところから、自動で進みます）。' : 'まず <b>Ollama</b> をインストールして起動し、AI モデルをダウンロードします（下記）。') + '</div>' +
               '<div class="ai-status" id="olStatus"><span class="ai-spin"></span>Ollama を確認しています…</div>' +
               '<div id="olBody"></div>';
           } else if (p === 'anthropic') {
@@ -292,38 +307,109 @@
           if (p === 'ollama') renderOllama();
         }
 
+        /* ----- Ollama の接続。ブラウザ版は、3つの手順を順に案内し、状態を自動で見守って、できたところから次へ進める ----- */
+        let olSeq = 0, olTimer = 0, olSeen = false, olWaitSince = 0, olKey = '';
+        const dlgEl = root.document.getElementById('dlg');
+        const OS = osKind(), ORIGIN = root.location.origin;
+        const kbd = (t) => '<kbd>' + t + '</kbd>';
+
+        /** 「うまくいかないとき」（手順1・2のときに付ける） */
+        const olHelp = () => '<details class="ol-help"><summary>うまくいかないとき</summary><div>' +
+          '<p><b>インストールしたのに「見つかりません」のままのとき</b><br>スタートメニューで「Ollama」を探して、起動してください（画面右下に Ollama のアイコンが出れば、起動しています）。</p>' +
+          '<p><b>ブラウザが「ローカルネットワーク上の機器の検索と接続」の許可を求めてきたとき</b><br>「許可」を選んでください（この PC の Ollama と話すための許可です）。間違って「ブロック」したときは、アドレスバーの左にある設定のアイコン →「このサイトの権限」→「ローカルネットワークへのアクセス」を「許可」にして、このページを開き直してください。</p>' +
+          '<p><button type="button" class="btn sm" data-a="olrecheck">もう一度確認</button></p></div></details>';
+
+        /** 手順2：このサイトからの接続を許可する（OS ごとの案内） */
+        const olAllowBody = (waiting, longWait) => {
+          const cp = (os) => '<button type="button" class="btn primary sm" data-a="copycmd" data-os="' + os + '">コマンドをコピー</button>';
+          const box = (os, id) => '<code' + (id ? ' id="' + id + '"' : '') + ' class="ol-cmd">' + esc(ollamaCmd(os, ORIGIN)) + '</code>';
+          const how = {
+            win: '<ol class="ol-how"><li>' + cp('win') + '</li>' +
+              '<li>キーボードの ' + kbd('⊞ Windows') + ' ＋ ' + kbd('R') + ' を同時に押します（「ファイル名を指定して実行」が開きます）。</li>' +
+              '<li>' + kbd('Ctrl') + ' ＋ ' + kbd('V') + ' で貼り付けて、' + kbd('Enter') + ' を押します。黒い画面が一瞬出て、Ollama が自動で再起動します。</li>' +
+              '<li>少し待つと、この画面が自動で次に進みます。</li></ol>',
+            mac: '<ol class="ol-how"><li>' + cp('mac') + '</li>' +
+              '<li>' + kbd('⌘') + ' ＋ ' + kbd('スペース') + ' で「ターミナル」を開きます。</li>' +
+              '<li>' + kbd('⌘') + ' ＋ ' + kbd('V') + ' で貼り付けて、' + kbd('Return') + ' を押します。</li>' +
+              '<li>メニューバーの Ollama のアイコン →「Quit Ollama」を選び、アプリから Ollama をもう一度起動します。そのあと、この画面が自動で次に進みます。</li></ol>',
+            other: '<ol class="ol-how"><li>' + cp('other') + '</li>' +
+              '<li>Ollama を動かす環境で、環境変数 <code>OLLAMA_ORIGINS</code> に、このサイトのアドレスを設定します（Linux の systemd なら、サービスの設定に <code>Environment="OLLAMA_ORIGINS=…"</code> を追加します）。</li>' +
+              '<li>Ollama を再起動します。そのあと、この画面が自動で次に進みます。</li></ol>',
+          };
+          const others = ['win', 'mac', 'other'].filter((x) => x !== OS).map((x) => '<p><b>' + ({ win: 'Windows', mac: 'Mac', other: 'Linux など' }[x]) + ' の場合</b></p>' + how[x] + box(x)).join('');
+          return '<p>安全のため、Ollama は、許可していないサイトからの接続を断ります。<b>このサイトだけを許可する設定を、1回だけ</b>行います（1分ほど）。</p>' +
+            how[OS] + box(OS, 'olCmd') +
+            (waiting ? '<div class="ai-status"><span class="ai-spin"></span>Ollama の再起動を待っています…</div>' +
+              (longWait ? '<div class="opt-note">なかなか進まないときは、スタートメニューから Ollama を起動してください。それでも進まなければ、下の「うまくいかないとき」を見てください。</div>' : '') : '') +
+            '<details class="ol-help"><summary>Windows 以外（または、別の OS）の場合</summary><div>' + others + '</div></details>' + olHelp();
+        };
+
+        /** 手順3：AI モデルを選ぶ・ダウンロードする */
+        const olModelBody = (o) => (models.length
+          ? '<div class="dlg-field"><label class="l">使うモデル（この PC にあるもの）</label><select id="kModelSel">' + opt(models.map((m) => [m.id, m.label]), o.model) + '</select></div>' +
+            '<div class="ai-grid"><label class="check"><input type="checkbox" id="kVision"' + (o.vision ? ' checked' : '') + '> 画像も送る（画像対応モデルのみ）</label>' +
+            '<div><select id="kNumCtx">' + opt([[8192, '短め（8K・軽い）'], [16384, '標準（16K）'], [32768, '長め（32K・メモリを多く使う）']], String(o.numCtx)) + '</select></div></div>'
+          : '<div class="opt-note">この PC には、まだ AI モデルがありません。下から選んで、ダウンロードしてください（最初の1回だけ。数分〜数十分かかります）。</div>') +
+          '<div class="dlg-field"><label class="l">モデルをダウンロード（この PC に保存されます）</label>' + RECOMMENDED.map((m, i) => '<div style="display:flex;gap:8px;align-items:center;margin:4px 0"><button type="button" class="btn sm" data-a="pull" data-model="' + m[0] + '">ダウンロード</button><span style="font-size:12.5px"><b>' + m[0] + '</b>　' + esc(m[1]) + (i === 0 ? ' <span class="prov-tag rec">まずはこれ</span>' : '') + '</span></div>').join('') +
+          '<div class="ai-status" id="olPull"></div></div>' +
+          '<div class="opt-note">小型モデルは、クラウドの AI より、まとめ・図解の品質が下がることがあります。パソコンの性能によっては、文章が出てくるまで数分かかることがあります。長い教材は、「短め／標準／長め」を大きくしてください。</div>';
+
+        const olStep = (n, st, title, badge, body) => '<div class="ol-step ' + st + '"><span class="ol-n">' + (st === 'done' ? '✓' : n) + '</span><div class="ol-main"><div class="ol-t"><b>' + title + '</b>' + (badge ? '<span class="ol-badge ' + st + '">' + esc(badge) + '</span>' : '') + '</div>' + (body ? '<div class="ol-b">' + body + '</div>' : '') + '</div></div>';
+
+        function olWizard(phase, o, longWait) {
+          const ok = phase === 'ok', waiting = !!olWaitSince;
+          const s1 = olSeen || ok ? 'done' : 'now';
+          const s2 = ok ? 'done' : (s1 === 'done' ? 'now' : 'todo');
+          const s3 = ok ? (models.length && o.model ? 'done' : 'now') : 'todo';
+          return '<div class="ol-steps">' +
+            olStep(1, s1, 'Ollama をインストールして起動する', s1 === 'done' ? 'できました' : '', s1 === 'now'
+              ? '<p>この PC に Ollama が見つかりません。まだ入れていなければ、インストールします（無料です）。</p>' +
+                '<p><button type="button" class="btn primary" data-a="open" data-url="https://ollama.com/download">Ollama をダウンロード</button></p>' +
+                '<div class="opt-note">インストールが終わって Ollama が起動すると、この画面が自動で次に進みます。</div>' + olHelp() : '') +
+            olStep(2, s2, 'このサイトからの接続を許可する（最初の1回だけ）', s2 === 'done' ? 'できました' : '', s2 === 'now' ? olAllowBody(waiting, longWait) : '') +
+            olStep(3, s3, 'AI モデルを選ぶ', s3 === 'done' ? o.model : '', ok ? olModelBody(o) : '') +
+            '</div>' +
+            (ok ? '' : '<div class="opt-note" style="margin-top:8px">むずかしいと感じたら：パソコンでも <button type="button" class="btn sm" data-a="pick" data-p="gemini">Gemini（無料・インストール不要）に切り替える</button> ことができます。</div>');
+        }
+
         async function renderOllama() {
+          clearTimeout(olTimer);
+          if (!dlgEl.open || !form.isConnected) return; // 設定画面が閉じた・別の画面になった：見守りをやめる
+          const my = ++olSeq;
           const c = cfg(), o = c.ollama;
-          const st = await D.ollamaStatus(o), el = $('#olStatus', form), body = $('#olBody', form);
-          if (!el) return;
-          // ブラウザ版：このページからの接続を許可する設定（最初の1回だけ）。Windows のコマンドを、そのまま貼り付けられるようにする
-          const webSetup = (open) => (!WEB ? '' : '<details class="ai-note"' + (open ? ' open' : '') + ' style="margin-top:8px"><summary><b>Ollama の設定（ブラウザ版で、最初に1回だけ必要）</b></summary>' +
-            '<div style="margin-top:6px;line-height:1.9">① <button type="button" class="btn sm" data-a="open" data-url="https://ollama.com/download">Ollama をダウンロード</button>して、インストール・起動します。<br>' +
-            '② このページからの接続を許可する設定です。Windows の「PowerShell」を開き、次の1行を貼り付けて Enter を押します。<br>' +
-            '<code id="olCmd" style="display:block;margin:4px 0;padding:6px 8px;word-break:break-all;user-select:all">[Environment]::SetEnvironmentVariable(\'OLLAMA_ORIGINS\',\'' + esc(root.location.origin) + '\',\'User\')</code>' +
-            '<button type="button" class="btn sm" data-a="copycmd">コピー</button><br>' +
-            '③ Ollama を一度終了し（画面右下のタスクトレイの Ollama アイコン → 「Quit Ollama」）、もう一度起動します。<br>' +
-            '④ <button type="button" class="btn sm" data-a="olrecheck">もう一度確認</button> を押します。ブラウザが<b>「ローカルネットワーク上の機器の検索と接続」</b>の許可を求めたら、<b>「許可」</b>を選んでください（この PC の Ollama と話すための許可です）。</div></details>');
-          if (!st.running) {
-            const why = st.reason === 'cors'
-              ? 'Ollama は起動していますが、このページからの接続が許可されていません。下の設定（②③）を行ってください。'
-              : (WEB ? 'Ollama に接続できません。起動していない、または、ブラウザが「ローカルネットワークへの接続」を許可していない可能性があります。' : 'Ollama が起動していません。');
-            el.innerHTML = '<span style="color:var(--danger)">' + esc(why) + '</span>';
-            body.innerHTML = WEB ? webSetup(true) : '<div class="opt-note">① <button type="button" class="btn sm" data-a="open" data-url="https://ollama.com/download">Ollama をダウンロード</button>（インストールして起動） → ② このボタンで再確認：<button type="button" class="btn sm" data-a="olrecheck">もう一度確認</button></div>';
+          const st = await D.ollamaStatus(o);
+          if (my !== olSeq) return;
+          const el = $('#olStatus', form), body = $('#olBody', form);
+          if (!el || !body || !dlgEl.open) return; // 画面が変わった・閉じた：見守りをやめる
+          const phase = st.running ? 'ok' : (st.reason === 'cors' ? 'cors' : 'down');
+          if (!WEB) { // デスクトップ版：Ollama を入れて起動するだけ
+            if (!st.running) {
+              el.innerHTML = '<span style="color:var(--danger)">Ollama が起動していません。</span>';
+              body.innerHTML = '<div class="opt-note">① <button type="button" class="btn sm" data-a="open" data-url="https://ollama.com/download">Ollama をダウンロード</button>（インストールして起動） → ② このボタンで再確認：<button type="button" class="btn sm" data-a="olrecheck">もう一度確認</button></div>';
+              return;
+            }
+            el.innerHTML = '<span style="color:var(--ok)">Ollama は起動しています（v' + esc(st.version) + '）。</span>';
+            const r = await D.models('ollama', o);
+            models = r.ok ? r.models : [];
+            if (!o.model && models.length) { o.model = models[0].id; save(); }
+            body.innerHTML = olModelBody(o);
             return;
           }
-          el.innerHTML = '<span style="color:var(--ok)">Ollama は起動しています（v' + esc(st.version) + '）。</span>';
-          const r = await D.models('ollama', o);
-          models = r.ok ? r.models : [];
-          if (!o.model && models.length) { o.model = models[0].id; save(); }
-          body.innerHTML = (models.length
-            ? '<div class="dlg-field"><label class="l">使うモデル（ダウンロード済み）</label><select id="kModelSel">' + opt(models.map((m) => [m.id, m.label]), o.model) + '</select></div>' +
-              '<div class="ai-grid"><label class="check"><input type="checkbox" id="kVision"' + (o.vision ? ' checked' : '') + '> 画像も送る（画像対応モデルのみ）</label>' +
-              '<div><select id="kNumCtx">' + opt([[8192, '短め（8K・軽い）'], [16384, '標準（16K）'], [32768, '長め（32K・メモリを多く使う）']], String(o.numCtx)) + '</select></div></div>'
-            : '<div class="opt-note">ダウンロード済みのモデルがありません。下から選んでダウンロードしてください。</div>') +
-            '<div class="dlg-field"><label class="l">モデルをダウンロード（この PC に保存されます）</label>' + RECOMMENDED.map((m) => '<div style="display:flex;gap:8px;align-items:center;margin:4px 0"><button type="button" class="btn sm" data-a="pull" data-model="' + m[0] + '">ダウンロード</button><span style="font-size:12.5px"><b>' + m[0] + '</b>　' + esc(m[1]) + '</span></div>').join('') +
-            '<div class="ai-status" id="olPull"></div></div>' +
-            '<div class="opt-note">小型モデルは、クラウドの AI より、まとめ・図解の品質が下がることがあります。長い教材は、コンテキスト長を大きくしてください。パソコンの性能によっては、文章が出てくるまで数分かかることがあります。</div>' + webSetup(false);
+          if (phase !== 'down') olSeen = true;
+          if (phase === 'ok' && olWaitSince) { olWaitSince = 0; say('Ollama とつながりました。'); }
+          el.innerHTML = phase === 'ok' ? '<span style="color:var(--ok)">Ollama は起動していて、つながっています（v' + esc(st.version) + '）。</span>'
+            : phase === 'cors' ? '<span style="color:var(--danger)">Ollama は起動していますが、このサイトからの接続が、まだ許可されていません。</span>'
+            : olWaitSince ? '<span class="ai-spin"></span>Ollama の再起動を待っています…' : '<span style="color:var(--danger)">Ollama が見つかりません。</span>';
+          if (phase === 'ok') {
+            const r = await D.models('ollama', o);
+            if (my !== olSeq) return;
+            models = r.ok ? r.models : [];
+            if (!o.model && models.length) { o.model = models[0].id; save(); }
+          }
+          const longWait = !!olWaitSince && Date.now() - olWaitSince > 90000;
+          const key = [phase, olSeen, !!olWaitSince, longWait, models.map((m) => m.id).join(), o.model].join('|');
+          if (key !== olKey) { olKey = key; body.innerHTML = olWizard(phase, o, longWait); }
+          if (phase !== 'ok') olTimer = setTimeout(renderOllama, 2500); // つながるまで、2.5秒ごとに自動で確かめる
         }
 
         form.addEventListener('click', async (e) => {
@@ -333,8 +419,12 @@
           if (a === 'pick') { c.provider = b.dataset.p; models = []; save(); renderGrid(); renderPanel(); say(''); if (c.provider === 'gemini' && ai.keys.gemini) loadModels(true); if (c.provider === 'openai' && c.openai.model === '' && ai.keys.openai) loadModels(true); }
           else if (a === 'open') openExternal(b.dataset.url);
           else if (a === 'copycmd') {
-            const t = ($('#olCmd', form) || {}).textContent || '';
-            try { await root.navigator.clipboard.writeText(t); say('コピーしました。PowerShell に貼り付けてください。'); } catch (e) { say('コピーできませんでした。上の文字を、選択してコピーしてください。', true); }
+            const os = b.dataset.os || OS;
+            try {
+              await root.navigator.clipboard.writeText(ollamaCmd(os, ORIGIN));
+              say(os === 'win' ? 'コピーしました。⊞ Windows ＋ R を押して、Ctrl ＋ V で貼り付け、Enter を押してください。' : os === 'mac' ? 'コピーしました。ターミナルに貼り付けて、Return を押してください。' : 'コピーしました。');
+            } catch (e) { say('コピーできませんでした。下の枠の文字を、選んでコピーしてください。', true); }
+            if (!olWaitSince) { olWaitSince = Date.now(); olKey = ''; renderOllama(); } // 実行したあとの、Ollama の再起動を待つ表示にする
           } else if (a === 'savekey') {
             const inp = $('#kKey', form), r = await D.setKey(b.dataset.p, inp.value.trim());
             if (r.ok) { inp.value = ''; say(r.note || 'API キーを保存しました。'); await refreshStatus(); renderPanel(); if (b.dataset.p === 'gemini') loadModels(); } else say(r.error, true);
