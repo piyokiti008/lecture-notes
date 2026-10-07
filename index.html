@@ -12,6 +12,7 @@
 <link rel="stylesheet" href="css/app.css">
 <link rel="stylesheet" href="css/sheet.css">
 <link rel="stylesheet" href="css/themes.css">
+<link rel="stylesheet" href="css/editor.css">
 <link rel="stylesheet" href="css/phone.css">
 <link rel="stylesheet" href="css/landing.css">
 </head>
@@ -55,11 +56,11 @@
 
           <article class="ld-slide" role="group" aria-roledescription="スライド" aria-label="1 / 9　書く">
             <div class="ld-media"><figure class="ld-win"><div class="ld-win-bar" aria-hidden="true"><i></i><i></i><i></i></div>
-              <button type="button" class="ld-zoom" aria-label="この画面を拡大して見る"><img src="img/showcase/pc-notes.webp" width="1920" height="1200" loading="lazy" decoding="async" draggable="false" alt="パソコン版のノート画面。左に書いた文章、右にきれいに整えられた表示が並び、重要な語に黄色い印、穴埋めの語に青い下線が付いている。"></button></figure></div>
+              <button type="button" class="ld-zoom" aria-label="この画面を拡大して見る"><img src="img/showcase/pc-notes.webp" width="1920" height="1200" loading="lazy" decoding="async" draggable="false" alt="パソコン版のノート画面。書く場所と見る場所が1つになっていて、重要な語は黄色のマーカー、穴埋めの語は青い下線、見出しは大きな文字で、書いたその場で表示されている。カーソルのある所だけ、元の記号（==）が見える。"></button></figure></div>
             <div class="ld-cap"><span class="ld-step">1 / 9</span>
-              <h3>講義のメモを、教科・単元ごとに書きためる</h3>
-              <p>左に書くと、右にきれいな表示がすぐ出ます。<code>==重要==</code> <code>{{穴埋め}}</code> <code>用語 :: 説明</code> <code>Q:</code>／<code>A:</code> の印を付けるだけで、あとから自動で集められます。</p>
-              <ul class="ld-pts"><li>印はボタンひとつで入れられます</li><li>表・数式・画像・図解も使えます</li></ul></div>
+              <h3>書いたその場で、きれいなノートになる</h3>
+              <p>別の画面を見る必要はありません。<code>==重要==</code> <code>{{穴埋め}}</code> <code>用語 :: 説明</code> <code>Q:</code>／<code>A:</code> の印を付けると、書き終えた瞬間に、マーカーや見出しの見た目に変わります。あとから、考査対策で自動で集められます。</p>
+              <ul class="ld-pts"><li>カーソルのある所だけ、元の記号が見えるので、書き直しも簡単です</li><li>表・数式・画像・図解も、その場で表示されます</li></ul></div>
           </article>
 
           <article class="ld-slide" role="group" aria-roledescription="スライド" aria-label="2 / 9　覚える">
@@ -201,6 +202,8 @@
 <script src="js/storage.js"></script>
 <script src="js/svg.js"></script>
 <script src="js/markdown.js"></script>
+<script src="vendor/editor/cm.js"></script>
+<script src="js/editor.js"></script>
 <script src="js/materials.js"></script>
 <script src="js/sheets.js"></script>
 <script src="js/webai.js"></script>

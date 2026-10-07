@@ -1,0 +1,71 @@
+/* ノートのエディタ（書く場所＝表示する場所。js/editor.js）。
+ * プレビュー（sheet.css の .md）と同じ見た目になるように、同じ変数・同じ寸法を使う。色は、テーマの変数だけを使う（固定色は書かない）。
+ * 文章の中の行は、上下の「余白（margin）」ではなく、「内側の余白（padding）」で間隔を作る（エディタが行の高さを正しく測れるように）。 */
+.ln-ed { flex: 1; min-width: 0; min-height: 0; display: flex; background: var(--panel); }
+.ed-body.live.m-view .ln-ed { display: none; }
+.ln-ed .cm-editor { flex: 1; min-width: 0; min-height: 0; font-size: var(--fs-note); background: var(--panel); color: var(--text); }
+.ln-ed .cm-editor.cm-focused { outline: none; }
+.ln-ed .cm-editor .cm-scroller { overflow: auto; font-family: inherit; line-height: 1.85; }
+.ln-ed .cm-editor .cm-content { padding: 18px 28px 96px; caret-color: var(--text); }
+.ln-ed .cm-editor .cm-line { padding: 0; }
+.ln-ed .cm-cursor, .ln-ed .cm-dropCursor { border-left: 2px solid var(--text); }
+.ln-ed .cm-editor .cm-selectionBackground, .ln-ed .cm-editor.cm-focused .cm-selectionBackground { background: color-mix(in srgb, var(--accent) 26%, transparent); }
+.ln-ed .cm-placeholder { color: var(--text-3); }
+
+/* 空行は詰める（プレビューの段落の間隔に近づける） */
+.ln-ed .ln-blank { line-height: 1; }
+
+/* 見出し */
+.ln-ed .cm-line.ln-h { font-weight: 700; line-height: 1.35; padding-top: .9em; padding-bottom: .35em; }
+.ln-ed .cm-line.ln-h1 { font-size: 1.55em; padding-bottom: .25em; border-bottom: 2px solid var(--md-line, #ddd); }
+.ln-ed .cm-line.ln-h2 { font-size: 1.28em; padding-left: .55em; border-left: 4px solid var(--md-accent, #2f5bea); }
+.ln-ed .cm-line.ln-h3 { font-size: 1.1em; }
+.ln-ed .cm-content > .cm-line:first-child { padding-top: 0; }
+
+/* 箇条書き・番号つき */
+.ln-ed .cm-line.ln-li { padding-left: calc(1.7em + var(--ind, 0) * 1.5em); text-indent: -1.45em; }
+.ln-ed .cm-line.ln-li-cont { text-indent: 0; }
+.ln-ed .ln-bullet { display: inline-block; width: 1.45em; text-indent: 0; text-align: center; color: var(--md-sub, #777); }
+.ln-ed .ln-num { display: inline-block; min-width: 1.45em; text-indent: 0; text-align: right; padding-right: .2em; color: var(--md-sub, #777); font-variant-numeric: tabular-nums; }
+
+/* 引用 */
+.ln-ed .cm-line.ln-quote { padding: .1em 1em; border-left: 4px solid var(--md-line, #ccc); background: var(--md-soft, #f6f6f4); color: var(--md-sub, #555); }
+
+/* 記号（書いている行・部分だけ見せる）：薄く、細く */
+.ln-ed .ln-syn { color: var(--text-3, #999); font-weight: 400; font-style: normal; text-decoration: none; background: none; border: 0; }
+.ln-ed .ln-math-src { font-family: Consolas, "Cascadia Mono", monospace; font-size: .92em; color: var(--md-sub, #555); }
+.ln-ed .ln-link { color: var(--md-accent, #2f5bea); text-decoration: underline; }
+
+/* 一問一答（Q: / A:） */
+.ln-ed .cm-line.ln-qa { padding: .22em .8em .22em 2.9em; border-left: 1px solid var(--md-line, #ddd); border-right: 1px solid var(--md-line, #ddd); }
+.ln-ed .cm-line.ln-qa-q { background: var(--md-soft, #f6f6f4); font-weight: 600; }
+.ln-ed .cm-line.ln-qa-a1 { border-top: 1px dashed var(--md-line, #ddd); }
+.ln-ed .cm-line.ln-qa-top { border-top: 1px solid var(--md-line, #ddd); border-radius: 8px 8px 0 0; padding-top: .45em; }
+.ln-ed .cm-line.ln-qa-bot { border-bottom: 1px solid var(--md-line, #ddd); border-radius: 0 0 8px 8px; padding-bottom: .45em; }
+.ln-ed .cm-line.ln-qa-top.ln-qa-bot { border-radius: 8px; }
+.ln-ed .ln-qtag { margin: 0 .5em 0 -2.1em; vertical-align: middle; text-indent: 0; }
+.ln-ed .ln-qtag-a { background: #d6572f; }
+.ln-ed .ln-syn-tag { font-weight: 700; }
+
+/* 用語 :: 説明 */
+.ln-ed .cm-line.ln-termline { padding-left: .8em; border-left: 3px solid var(--md-line, #ddd); }
+
+/* 区切り線 */
+.ln-ed .ln-hr { display: block; margin: .65em 0; border-top: 1px solid var(--md-line, #ddd); height: 0; }
+
+/* 画像・数式 */
+.ln-ed .ln-img { max-width: 100%; height: auto; border-radius: 4px; vertical-align: middle; }
+
+/* 表・数式ブロック・図解・コード：完成した見た目（カーソルがないとき） */
+.ln-ed .ln-blk { padding: .25em 0; cursor: text; }
+.ln-ed .ln-blk > :first-child { margin-top: 0; }
+.ln-ed .ln-blk > :last-child { margin-bottom: 0; }
+/* カーソルが入った表・数式ブロック・図解・コード：書き換えられる文章 */
+.ln-ed .cm-line.ln-src { font-family: Consolas, "Cascadia Mono", monospace; font-size: .92em; line-height: 1.65; padding: 0 .9em; background: var(--md-soft, #f0efec); }
+.ln-ed .cm-line.ln-src-top { padding-top: .5em; border-radius: 8px 8px 0 0; }
+.ln-ed .cm-line.ln-src-bot { padding-bottom: .5em; border-radius: 0 0 8px 8px; }
+.ln-ed .cm-line.ln-src-top.ln-src-bot { border-radius: 8px; }
+
+/* スマホ：書く欄の文字は16px以上（入力のとき、画面が勝手に拡大されない） */
+html.is-phone .ln-ed .cm-editor { font-size: max(16px, var(--fs-note)); }
+html.is-phone .ln-ed .cm-editor .cm-content { padding: 14px 16px 96px; }

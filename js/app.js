@@ -151,6 +151,7 @@
 
   /* ---------- 全体描画 ---------- */
   function render() {
+    destroyEditor(); // これから画面を描き直す：書いていたエディタの後始末（残すと、見えない所で動き続ける）
     ensureSelection();
     renderSidebar();
     if (ui.view === 'notes') renderNotes(); else renderExam();
@@ -241,11 +242,20 @@
 
   const modeSegHtml = (items, cls, id) => '<div class="seg modeSeg ' + (cls || '') + '"' + (id ? ' id="' + id + '"' : '') + '>' + items.map((m) => '<button type="button" data-act="mode" data-mode="' + m[0] + '" class="' + (ui.mode === m[0] ? 'on' : '') + '">' + m[1] + '</button>').join('') + '</div>';
 
+  /* 書く場所＝表示する場所のエディタ（js/editor.js）。使えない環境・「従来の分割表示」を選んだときは、従来の textarea ＋ プレビュー */
+  let edv = null;
+  const EDITOR_HINT = 'ここに講義メモを書きます。\n\n==大事な語== ・ {{穴埋めにしたい語}} ・ 用語 :: 説明 ・ Q: 問い / A: 答え\n（ツールバーのボタン、または右上の「書き方ガイド」を参照）';
+  const useLive = () => { if (!(LN.editor && LN.editor.available)) return false; try { return window.localStorage.getItem('ln.editor') !== 'classic'; } catch (e) { return true; } };
+  function destroyEditor() { if (edv) { try { edv.destroy(); } catch (e) { /* 無視 */ } edv = null; } }
+
   function renderEditor() {
+    destroyEditor();
     const col = $('#editorCol');
     if (!col) return;
     const n = curNote();
     if (!n) { col.innerHTML = '<div class="center-msg">ノートを選ぶか、<br>「新しいノート」を作成してください。</div>'; return; }
+    const live = useLive();
+    if (live && ui.mode === 'split') ui.mode = 'edit'; // その場で見た目が変わるエディタでは、「分割」はなくなる（書く場所＝表示する場所）
     if (LN.theme && LN.theme.isPhone() && ui.mode === 'split') ui.mode = 'edit'; // スマホ用は、編集と表示を切り替える方式
     const units = unitsOf(n.subjectId);
     const unitOpts = '<option value="">未分類</option>' + units.map((u) => '<option value="' + u.id + '"' + (u.id === n.unitId ? ' selected' : '') + '>' + esc(u.name) + '</option>').join('') + '<option value="__new">＋ 新しい単元を作る…</option>';
@@ -272,31 +282,47 @@
       '<span class="tb-spacer"></span>' +
       '<button class="tb' + (ui.study ? ' hl' : '') + '" id="studyBtn" data-act="study" title="穴埋めと答えを隠して確認できます"><b>暗記モード</b></button>' +
       '<span class="tb-sep"></span>' +
-      modeSegHtml([['edit', '編集'], ['split', '分割'], ['view', '表示']], '', 'modeSeg') + '</div>' +
+      modeSegHtml(live ? [['edit', '編集'], ['view', '表示']] : [['edit', '編集'], ['split', '分割'], ['view', '表示']], '', 'modeSeg') + '</div>' +
       '<div class="study-hint" id="studyHint"' + (ui.study ? '' : ' hidden') + '>暗記モード：青い空欄と Q&amp;A の答えをクリックすると表示されます。</div>' +
-      '<div class="ed-body m-' + ui.mode + '"><textarea id="fBody" spellcheck="false" placeholder="ここに講義メモを書きます。&#10;&#10;==大事な語== ・ {{穴埋めにしたい語}} ・ 用語 :: 説明 ・ Q: 問い / A: 答え&#10;（ツールバーのボタン、または右上の「書き方ガイド」を参照）"></textarea>' +
+      '<div class="ed-body m-' + ui.mode + (live ? ' live' : '') + '">' +
+      (live ? '<div class="ln-ed" id="fBodyLive"></div>' : '<textarea id="fBody" spellcheck="false" placeholder="' + esc(EDITOR_HINT).replace(/\n/g, '&#10;') + '"></textarea>') +
       '<div class="preview md' + (ui.study ? ' study' : '') + '" id="preview"></div></div>' +
       '<div class="ed-foot"><span class="save-state" id="saveState">保存済み</span><span class="ed-stats" id="stats"></span><span class="grow"></span>' +
       '<button class="btn sm" data-act="note-print">' + ICON.print + '印刷</button><button class="btn sm ghost" data-act="note-del" style="color:var(--danger)">' + ICON.trash + '削除</button></div>';
-    $('#fBody').value = n.body;
+    if (live) {
+      edv = LN.editor.create({
+        parent: $('#fBodyLive'), doc: n.body, placeholder: EDITOR_HINT,
+        onChange(text) { const cur = curNote(); if (cur) { cur.body = text; touch(cur); scheduleStats(); } },
+        onKeydown: onBodyKey, onImageFile: addImageFile,
+      });
+    } else $('#fBody').value = n.body;
     updatePreview();
+    updateStats();
   }
 
-  let pvTimer = null;
+  let pvTimer = null, stTimer = null;
   function schedulePreview() { clearTimeout(pvTimer); pvTimer = setTimeout(updatePreview, 90); }
+  function scheduleStats() { clearTimeout(stTimer); stTimer = setTimeout(updateStats, 250); }
   function updatePreview() {
     const n = curNote(), pv = $('#preview');
     if (!n || !pv) return;
+    if (edv && ui.mode === 'edit') return; // 編集中は、別の枠のプレビューを描かない（「表示」に切り替えたときに描く）
     pv.innerHTML = n.body.trim() ? md.render(n.body) : '<p class="placeholder">プレビューがここに表示されます。</p>';
+    if (!edv) updateStats();
+  }
+  function updateStats() {
+    const n = curNote(), el = $('#stats');
+    if (!n || !el) return;
     const x = md.extract(n.body);
-    $('#stats').innerHTML = '重要 <b>' + x.highlights.length + '</b> ・ 用語 <b>' + x.terms.length + '</b> ・ Q&amp;A <b>' + x.qas.length + '</b> ・ 穴埋め <b>' + x.cloze + '</b> ・ ' + n.body.length + '文字';
+    el.innerHTML = '重要 <b>' + x.highlights.length + '</b> ・ 用語 <b>' + x.terms.length + '</b> ・ Q&amp;A <b>' + x.qas.length + '</b> ・ 穴埋め <b>' + x.cloze + '</b> ・ ' + n.body.length + '文字';
   }
 
   const touch = (n) => { n.updatedAt = Date.now(); LN.save(); };
 
   /* ---------- エディタの書式操作 ---------- */
-  const taEl = () => $('#fBody');
+  const taEl = () => edv || $('#fBody'); // 書く場所（その場表示のエディタ、または従来の textarea）。どちらも textarea と同じ使い方ができる
   function insertText(el, text, s, e) {
+    if (el.insertAt) { el.insertAt(text, s, e); return; } // その場表示のエディタ
     el.focus(); el.setSelectionRange(s, e);
     if (!document.execCommand('insertText', false, text)) { el.setRangeText(text, s, e, 'end'); el.dispatchEvent(new Event('input', { bubbles: true })); }
   }
@@ -343,7 +369,7 @@
   function format(kind) {
     const el = taEl();
     if (!el) return;
-    if (ui.mode === 'view') setMode('split');
+    if (ui.mode === 'view') setMode(edv ? 'edit' : 'split');
     switch (kind) {
       case 'h': heading(); break;
       case 'bold': wrap('**', '**', '太字'); break;
@@ -381,13 +407,14 @@
 
   function setMode(m) {
     ui.mode = m;
-    const b = $('.ed-body'); if (b) b.className = 'ed-body m-' + m;
+    const b = $('.ed-body'); if (b) b.className = 'ed-body m-' + m + (edv ? ' live' : '');
     $$('.modeSeg button').forEach((x) => x.classList.toggle('on', x.dataset.mode === m));
     if (m !== 'edit') updatePreview();
+    if (edv && m === 'edit') { edv.view.requestMeasure(); edv.focus(); } // 「表示」から戻ったとき、書く場所の大きさを測り直して、続きから書ける
   }
 
   function onBodyKey(e) {
-    const el = e.target;
+    const el = taEl();
     const mod = e.ctrlKey || e.metaKey;
     if (mod && !e.shiftKey && !e.altKey) {
       if (e.key === 'b') { e.preventDefault(); format('bold'); return; }
@@ -681,7 +708,7 @@
       $('#studyBtn').classList.toggle('hl', ui.study);
       $('#preview').classList.toggle('study', ui.study);
       $('#studyHint').hidden = !ui.study;
-      if (ui.study && ui.mode === 'edit') setMode('split');
+      if (ui.study && ui.mode === 'edit') setMode(edv ? 'view' : 'split'); // 暗記モードは、読む画面（表示）で、空欄を隠す
     },
 
     async 'unit-add'() {
@@ -812,6 +839,7 @@
         rows.map((r) => '<tr><td>' + r[0] + '</td><td>' + r[1] + '</td><td>' + r[2] + '</td></tr>').join('') + '</tbody></table>' +
         '<div class="help-sec"><b>使い方の流れ</b><br>① 教科を作り、必要なら単元を作る　② ノートを書く（上の印をつけるだけ）　③「考査対策」で考査を作り、範囲の単元にチェック　' +
         '④「単元まとめ」で下書き→自分の言葉に整える　⑤「プリント作成」で印刷 / PDF保存。</div>' +
+        '<div class="help-sec"><b>書いたその場で、見た目になります</b><br>「==重要==」「{{穴埋め}}」「**太字**」「## 見出し」などは、書き終えた瞬間に、完成した見た目に変わります。<b>カーソルがある行・部分だけ、記号が見えます</b>（書き直しやすくするためです）。表・数式・図解は、カーソルを外すと完成した見た目になり、クリックすると書き直せます。</div>' +
         '<div class="help-sec"><b>入力のコツ</b><br>リスト行で Enter → 次の「- 」を自動入力（空の行で Enter → 終了）／ <code>Q:</code> の行で Enter → 次の行に <code>A:</code> を自動入力 ／ Ctrl+B 太字・Ctrl+E 重要マーク ／ Tab でインデント ／ 「暗記モード」で穴埋めと答えを隠して確認。</div>',
     });
   }

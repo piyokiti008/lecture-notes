@@ -15,6 +15,13 @@
   const card = (t, cur) => '<button type="button" class="th-card' + (cur === t.id ? ' on' : '') + '" data-act="disp-set" data-k="theme" data-v="' + t.id + '">' +
     swatch(t) + '<b>' + esc(t.name) + '</b><small>' + esc(t.tag) + '</small></button>';
 
+  /* ノートの書き方：「その場で見た目が変わる」（既定）／「従来の分割表示」。この端末だけに保存する（js/editor.js が使えない環境では、この項目を出さない） */
+  const editorMode = () => { try { return root.localStorage.getItem('ln.editor') === 'classic' ? 'classic' : 'live'; } catch (e) { return 'live'; } };
+  const editorField = () => (LN.editor && LN.editor.available ? field('ノートの書き方',
+    '<div class="seg full">' + [['live', 'その場で見た目が変わる（おすすめ）'], ['classic', '従来の分割表示']].map((it) =>
+      '<button type="button" data-act="disp-editor" data-v="' + it[0] + '" class="' + (editorMode() === it[0] ? 'on' : '') + '">' + it[1] + '</button>').join('') + '</div>',
+    '「その場で…」：書いた文字が、書いたその場で、完成した見た目になります（カーソルのある所だけ、記号が見えます）。「従来の分割表示」：書く枠と見る枠が、2つに分かれます。うまく動かないときは、こちらに切り替えてください。この設定は、この端末（ブラウザ）だけに保存されます。') : '');
+
   function fullHtml() {
     const p = T.get(), cur = p.theme, info = T.THEMES.find((t) => t.id === cur) || T.THEMES[0];
     const purpose = T.THEMES.filter((t) => t.group === 'purpose'), base = T.THEMES.filter((t) => t.group === 'base');
@@ -26,7 +33,7 @@
       '<div class="th-info"><b>' + esc(info.name) + '</b>　<span>' + esc(info.tag) + '</span><br>' + esc(info.why) + '<br><small>色の感じ方や効果には個人差があります。気軽に試して、合うものを選んでください。</small></div></div>' +
       field('明るさ', seg('mode', [['light', 'ライト'], ['dark', 'ダーク'], ['auto', '端末に合わせる']])) +
       field('夜は自動で「夜」テーマにする', seg('night', [['off', 'しない'], ['on', 'する']]), '21時から朝5時までは、選んだテーマにかかわらず「夜」テーマ（暖色で、まぶしさを抑えた配色）になります。朝になると元に戻ります。') +
-      field('文字の大きさ（ノートの本文）', seg('size', [['s', '小'], ['m', '標準'], ['l', '大']])) +
+      field('文字の大きさ（ノートの本文）', seg('size', [['s', '小'], ['m', '標準'], ['l', '大']])) + editorField() +
       field('角の丸み', seg('round', [['s', '角ばった'], ['m', '標準'], ['l', '丸い']])) +
       field('画面の種類', seg('layout', [['auto', '自動'], ['pc', 'パソコン用'], ['phone', 'スマホ用']]), '自動：画面の幅で切り替わります。この設定は、この端末（ブラウザ）だけに保存されます。');
   }
@@ -67,6 +74,11 @@
       const f = A[el.dataset.go]; if (f) f(el);
     };
     A['disp-set'] = (el) => { T.set(el.dataset.k, el.dataset.v); redraw(); }; // 開いたまま、選択状態だけ更新する
+    A['disp-editor'] = (el) => {
+      try { if (el.dataset.v === 'classic') root.localStorage.setItem('ln.editor', 'classic'); else root.localStorage.removeItem('ln.editor'); } catch (e) { /* この端末に保存できない場合は、今回だけ */ }
+      redraw();
+      if (U.renderEditor && U.ui && U.ui.view === 'notes') U.renderEditor(); // いま開いているノートの書く欄を、すぐ切り替える
+    };
     A['disp-scene'] = (el) => {
       const s = T.SCENES.find((x) => x.id === el.dataset.id);
       if (s) { T.set('theme', s.theme); redraw(); }

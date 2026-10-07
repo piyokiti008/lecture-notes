@@ -206,11 +206,13 @@
     const off = opts.headingOffset || 0;
     const lines = String(src || '').replace(/\r\n?/g, '\n').split('\n');
     const out = [];
-    const push = (kind, html, answers, meta) => out.push({ kind, html, answers: answers || [], cloze: (answers || []).length, meta: meta || {} });
-    let i = 0;
+    // from／to：このブロックが、元の文章の何行目から何行目の手前までか（0始まり、to は含まない）。その場で見た目を変えるエディタ（js/editor.js）が使う
+    let start = 0, i = 0;
+    const push = (kind, html, answers, meta, end) => out.push({ kind, html, answers: answers || [], cloze: (answers || []).length, meta: meta || {}, from: start, to: end === undefined ? i : end });
     while (i < lines.length) {
       const line = lines[i];
       if (!line.trim()) { i++; continue; }
+      start = i;
       let m;
 
       if ((m = /^\s*```\s*([\w+-]*)/.exec(line))) {
@@ -238,10 +240,10 @@
       }
       if ((m = RE_HEAD.exec(line))) {
         const n = Math.min(6, m[1].length + off), ctx = { answers: [] };
-        push('h', '<h' + n + '>' + inline(m[2], ctx) + '</h' + n + '>', ctx.answers, { text: m[2] });
+        push('h', '<h' + n + '>' + inline(m[2], ctx) + '</h' + n + '>', ctx.answers, { text: m[2] }, i + 1);
         i++; continue;
       }
-      if (RE_HR.test(line)) { push('hr', '<hr>'); i++; continue; }
+      if (RE_HR.test(line)) { push('hr', '<hr>', undefined, undefined, i + 1); i++; continue; }
       if (line.includes('|') && isSep(lines[i + 1])) {
         const head = splitRow(line), seps = splitRow(lines[i + 1]);
         const aligns = seps.map((s) => (/^:-+:$/.test(s) ? 'center' : /-:$/.test(s) ? 'right' : ''));
@@ -294,7 +296,7 @@
       if ((m = RE_TERM.exec(line))) {
         const ctx = { answers: [] };
         push('term', '<div class="term-line"><strong class="term">' + inline(m[1], ctx) + '</strong><span class="term-sep">：</span><span>' + inline(m[2], ctx) + '</span></div>',
-          ctx.answers, { term: m[1], def: m[2] });
+          ctx.answers, { term: m[1], def: m[2] }, i + 1);
         i++; continue;
       }
       const buf = [line]; i++;
@@ -345,5 +347,6 @@
     return out;
   }
 
-  LN.md = { esc, inline, blocks, render, extract, mathHtml };
+  // RE：行の種類を見分ける正規表現（js/editor.js が、書いている最中の見た目を、プレビューと同じ規則で決めるために使う）
+  LN.md = { esc, inline, blocks, render, extract, mathHtml, RE: { HEAD: RE_HEAD, LIST: RE_LIST, Q: RE_Q, A: RE_A, TERM: RE_TERM, HR: RE_HR } };
 })(typeof window !== 'undefined' ? window : globalThis);
