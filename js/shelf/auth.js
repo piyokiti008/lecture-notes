@@ -32,6 +32,7 @@
     WEAK_PASSWORD: 'パスワードが弱すぎます。もっと長くしてください。',
     USER_DISABLED: 'このアカウントは、使えない状態になっています。',
     OPERATION_NOT_ALLOWED: 'いまは登録できません。しばらくしてからお試しください。',
+    CREDENTIAL_TOO_OLD_LOGIN_AGAIN: 'ログインから時間がたちすぎています。ログインIDとパスワードを入れて、もう一度押してください。',
   };
 
   async function call(url, init) {
@@ -71,6 +72,20 @@
   AU.signUp = (loginId, password, remember) => enter('signUp', loginId, password, remember);
   AU.signIn = (loginId, password, remember) => enter('signIn', loginId, password, remember);
 
+  /** いまログインしているアカウントの、パスワードでのログインし直し。アカウントの削除のような重要な操作は、Firebase が、直近（約5分以内）の
+   *  パスワードでのログインを求める（「保つ」で残った更新用のトークンでは、最後のログインの時刻が古いまま）。
+   *  入れたIDが、いまのアカウントのものでなければ、何も変えずに断る。「保つ」の設定は、そのまま。成功すると、新しいトークンに入れ替わる */
+  AU.reauth = async function (loginId, password) {
+    if (!ses) return { ok: false, code: 'login', error: 'ログインが切れました。もう一度ログインしてください。' };
+    try {
+      const email = await M.emailOf(loginId);
+      const r = await call(AU.cfg.signIn, json({ email, password, returnSecureToken: true }));
+      if (!r.ok || !r.json.idToken) { const c = codeOf(r.json); return { ok: false, code: c || 'http' + r.status, error: MSG[c] || 'ログインし直せませんでした（' + (c || r.status) + '）。' }; }
+      if ((r.json.localId || r.json.user_id) !== ses.uid) return { ok: false, code: 'other', error: '入れたログインIDは、いまログインしているアカウントのものではありません。' };
+      return take(r.json);
+    } catch (e) { return failure(e); }
+  };
+
   async function refresh(rt) {
     const r = await call(AU.cfg.refresh, { headers: { 'Content-Type': 'application/x-www-form-urlencoded' }, body: 'grant_type=refresh_token&refresh_token=' + encodeURIComponent(rt) });
     if (!r.ok || !r.json.id_token) return false;
@@ -101,7 +116,7 @@
     if (!tok) return { ok: false, code: 'login', error: 'ログインが切れました。もう一度ログインしてください。' };
     try {
       const r = await call(AU.cfg.remove, json({ idToken: tok }));
-      if (!r.ok) return { ok: false, code: 'http' + r.status, error: 'アカウントを消せませんでした（' + (codeOf(r.json) || r.status) + '）。' };
+      if (!r.ok) { const c = codeOf(r.json); return { ok: false, code: c || 'http' + r.status, error: MSG[c] || 'アカウントを消せませんでした（' + (c || r.status) + '）。' }; }
       AU.signOut();
       return { ok: true };
     } catch (e) { return failure(e); }

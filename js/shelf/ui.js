@@ -946,7 +946,13 @@
     const goBtn = h('button', { id: 'shAccountGo', class: 'sh-btn danger', type: 'button', text: 'アカウントを削除する', disabled: admins.length > 0 });
     goBtn.addEventListener('click', async () => {
       if (!agree.checked) return say(msg, '内容を確かめて、チェックを入れてください。');
-      busy(goBtn, true, '消しています…'); say(msg, '');
+      // 先に、パスワードでログインし直す（Firebase は、アカウントの削除に、直近のパスワードでのログインを求める）。ここで失敗したら、何も消さない
+      const c = M.checkLoginId($('shAccountId').value); if (!c.ok) return say(msg, c.error);
+      const pw = $('shAccountPw').value; if (!pw) return say(msg, 'パスワードを入れてください。');
+      busy(goBtn, true, '確かめています…'); say(msg, '');
+      const re = await AU.reauth(c.id, pw);
+      if (!re.ok) { busy(goBtn, false, 'アカウントを削除する'); if (re.code === 'login') { expired(re); return; } return say(msg, re.error); }
+      busy(goBtn, true, '消しています…');
       for (const x of rows) {
         const rr = x.m.ok && x.m.exists ? await A.leaveShelf({ sid: x.s.sid, uid: me.uid }) : await A.dropJoined(me.uid, x.s.sid);   // 抜ける（棚がすでに無い場合は、一覧から外すだけ）
         if (expired(rr)) return;
@@ -966,6 +972,10 @@
         h('p', { class: 'sh-sub', text: '参加しているすべての棚から抜け、表示名（プロフィール）とログインのアカウントが消えます。元に戻せません。自分の投稿は、棚に残ります（消したい場合は、先に削除してください）。ドライブのファイルは、あなたのドライブに残ります。' }),
         r.shelves.length ? h('ul', { id: 'shAccountShelves', class: 'sh-list' }, rows.map((x) => h('li', null, h('div', { class: 'sh-item' }, h('span', null, h('b', { text: x.s.name })), h('span', { class: 'sh-tag' + (x.m.ok && x.m.exists && x.m.role === 'admin' ? ' admin' : ''), text: x.m.ok && x.m.exists ? (x.m.role === 'admin' ? '管理者' : 'メンバー') : '（棚が無い）' }))))) : h('p', { class: 'sh-sub', text: '参加している棚は、ありません。' })),
       admins.length ? note('管理者になっている棚があります（' + admins.map((x) => '「' + x.s.name + '」').join('') + '）。先に、その棚を削除してください（棚の「管理者の画面」の一番下）。', true, 'shAccountAdminNote') : null,
+      h('div', { id: 'shAccountReauth', class: 'sh-card' }, h('h2', { text: '確認のため、ログインし直します' }),
+        h('p', { class: 'sh-sub', text: 'アカウントを消すときは、安全のため、直前に、ログインIDとパスワードで、ログインし直す決まりです。入れたあと、下のボタンを押すと、すぐに消えます。' }),
+        fld('shAccountId', 'ログインID', { autocomplete: 'username' }),
+        fld('shAccountPw', 'パスワード', { type: 'password', autocomplete: 'current-password' })),
       h('label', { class: 'sh-check' }, agree, h('span', { text: '内容を確かめました（パスワードを忘れても、復旧できません）' })), msg, goBtn);
   }
 
