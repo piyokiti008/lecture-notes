@@ -9,5 +9,12 @@
     project: 'p-notes-4ed2b',
     // ニックネーム名簿（Firestore のコレクション members。文書名＝利用者の「番号」）
     roster: 'https://firestore.googleapis.com/v1/projects/p-notes-4ed2b/databases/(default)/documents/members',
+    // 棚（コミュニティ）：Firestore の文書の根っこ（js/shelf/api.js）
+    docs: 'https://firestore.googleapis.com/v1/projects/p-notes-4ed2b/databases/(default)/documents',
+    // 棚：投稿ファイルを、ログインなしで読むための Drive 専用キー（Drive API だけを許可。2026-10-22 に作成。段階3で使う）
+    driveKey: 'AIzaSyDlYEjbWU_7YvWHeediRhS9pHh8e_am9_4',
+    // 棚の荒らし対策（App Check）：reCAPTCHA v3 のサイトキーと、Firebase のウェブアプリの ID。両方が入ると有効になる（空のあいだは、使わない）。手順は docs/運営の設定手順（棚）.md
+    appCheckSiteKey: '',
+    appId: '',
   };
 })(window);

@@ -69,6 +69,7 @@
     A['m-menu'] = () => {
       const items = [];
       if (LN.cloud) items.push(['cloud', LN.cloud.label ? LN.cloud.label() : 'ログインと自動保存', LN.cloud.attention && LN.cloud.attention()]);
+      if (LN.post) items.push(['post-open', '棚に投稿', false], ['shelf-open', '棚を開く（友達と共有）', false]);
       if (LN.ai) items.push(['ai-settings', 'AIアシスタント', false]);
       items.push(['help', '書き方ガイド', false], ['backup', 'バックアップ', !!(U.needsBackup && U.needsBackup() && !(LN.cloud && LN.cloud.enabled && LN.cloud.enabled()))]); // ドライブに自動保存している人には、バックアップの催促を出さない
       if (LN.feedback && LN.feedback.available) items.push(['feedback', 'フィードバック', false]);
@@ -83,6 +84,7 @@
       const dlg = root.document.getElementById('dlg'); if (dlg.open) dlg.close();
       const f = A[el.dataset.go]; if (f) f(el);
     };
+    A['shelf-open'] = () => { root.open('shelf.html', '_blank', 'noopener'); };   // 棚（友達と共有する画面）を、新しいタブで開く
     A['disp-set'] = (el) => { T.set(el.dataset.k, el.dataset.v); redraw(); }; // 開いたまま、選択状態だけ更新する
     A['disp-editor'] = (el) => {
       try { if (el.dataset.v === 'classic') root.localStorage.setItem('ln.editor', 'classic'); else root.localStorage.removeItem('ln.editor'); } catch (e) { /* この端末に保存できない場合は、今回だけ */ }

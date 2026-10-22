@@ -1048,10 +1048,12 @@
     if (LN.feedback) LN.feedback.init(LN.ui);
     if (LN.ai) LN.ai.init(LN.ui);
     if (LN.cloud) LN.cloud.init(LN.ui);
+    if (LN.post) LN.post.init(LN.ui);
     if (LN.display) LN.display.init(LN.ui);
     if (LN.mobile) LN.mobile.init(LN.ui);
     if (LN.theme) LN.theme.onLayoutChange = () => render(); // パソコン用⇔スマホ用が切り替わったら、描き直す
     render();
     if (LN.cloud) LN.cloud.start(); // 初回のごあいさつ・再接続など（画面を描いたあとで行う）
+    if (LN.post) LN.post.start();   // 棚のページの「ここに投稿する」から開かれたとき（#/post/…）、投稿のダイアログを開く
   })();
 })();

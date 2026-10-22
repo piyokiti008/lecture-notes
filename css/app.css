@@ -249,6 +249,27 @@ dialog::backdrop { background: rgba(20, 20, 24, .45); }
 .help-sec b { color: var(--text); }
 .bk-box { background: var(--panel-2); border: 1px solid var(--line); border-radius: var(--radius); padding: 12px 14px; font-size: 13px; color: var(--text-2); line-height: 1.7; }
 .bk-box.warn { background: var(--warn-soft); border-color: transparent; color: var(--warn); }
+/* 棚への投稿（js/shelf/post.js のダイアログ） */
+.pst, #pstBody { display: flex; flex-direction: column; gap: 12px; }
+.pst-tabs { display: flex; gap: 6px; flex-wrap: wrap; }
+.pst-sub { margin: 0; font-size: 12px; color: var(--text-2); line-height: 1.7; }
+.pst-sub.err, .pst-msg { color: var(--danger); }
+.pst-msg { margin: 0; font-size: 13px; line-height: 1.6; }
+.pst-msg.ok, .pst-ok { color: var(--ok); }
+.pst-msg[hidden], .pst-sub[hidden] { display: none; }
+.pst input[type=password] { width: 100%; padding: 7px 10px; border: 1px solid var(--line); border-radius: var(--r-sm); background: var(--panel); outline: none; }
+.pst input[type=file] { width: 100%; font-size: 13px; }
+.pst-row { display: flex; gap: 8px; flex-wrap: wrap; }
+a.btn { text-decoration: none; display: inline-block; }
+.pst-check, .pst-radio { display: flex; align-items: flex-start; gap: 8px; margin: 4px 0; font-size: 13.5px; cursor: pointer; }
+.pst-check input, .pst-radio input { margin-top: 3px; flex: none; }
+.pst-dest { display: flex; align-items: center; gap: 8px; }
+.pst-dest-path { flex: 1; min-width: 0; font-size: 13.5px; font-weight: 700; overflow-wrap: anywhere; }
+.pst-rules { white-space: pre-wrap; max-height: 9em; overflow: auto; padding: 9px 11px; border-radius: var(--r-sm); background: var(--panel-2); border: 1px solid var(--line); font-size: 13px; line-height: 1.7; }
+.pst-pick { display: flex; flex-direction: column; gap: 6px; max-height: 40vh; overflow: auto; }
+.pst-pick-item { text-align: left; }
+.pst-mine { border: 1px solid var(--line); border-radius: var(--r-sm); padding: 9px 11px; margin-bottom: 8px; }
+.pst-mine-name { font-weight: 700; font-size: 13.5px; overflow-wrap: anywhere; }
 .toast { position: fixed; left: 50%; bottom: 26px; transform: translate(-50%, 20px); background: var(--toast); color: var(--toast-text); padding: 9px 18px; border-radius: 99px; font-size: 13px; font-weight: 600; opacity: 0; pointer-events: none; transition: opacity .18s, transform .18s; z-index: 50; }
 .toast.show { opacity: 1; transform: translate(-50%, 0); }
 

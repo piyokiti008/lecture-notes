@@ -661,6 +661,22 @@
   /** 「ログインせずに使う」：ホームページを次回から出さない */
   c.skipLogin = () => lsSet(SKIP_KEY, true);
 
+  /** 棚への投稿（js/shelf/post.js）が使う口。Google ドライブのアクセストークンと、保存先のフォルダ。トークンはメモリにだけあり、保存しない */
+  c.driveAccess = {
+    enabled: () => !!book.enabled,                 // このブラウザで、Google ログイン（自動保存）を使っているか
+    token: () => (tokenOk() ? token : null),       // 有効なトークン（無ければ null）
+    email: () => book.email || '',
+    /** トークンが切れていたら、ポップアップで再接続する（ボタンを押した直後に呼ぶこと）。ほかのダイアログは出さない。つながれば true */
+    reconnect: async () => {
+      if (tokenOk()) return true;
+      if (!book.enabled) return false;
+      await connect({ prompt: '', hint: book.email, auto: true });
+      return tokenOk();
+    },
+    /** 「講義ノート」フォルダの ID（無ければ作る） */
+    folderId: () => ensureFolder(),
+  };
+
   c.init = function (ui) {
     U = ui;
     const A = U.actions;

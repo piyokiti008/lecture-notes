@@ -40,6 +40,19 @@
     </div>
     <p class="adm-note">「番号」は、同じニックネームの人を見分けるための、短い印です（アカウントには戻せません）。「利用停止」は、不正な使い方があったときだけ使ってください。停止にされた人は、次にログインしたときから、自動保存が使えなくなります（ノートは、その人のドライブとブラウザに残ります）。</p>
   </section>
+
+  <section id="admShelvesCard" class="adm-card" hidden>
+    <h2 class="adm-h2">棚（削除の依頼に応えるため）</h2>
+    <p class="adm-note">棚の名前・人数・作成日だけが見えます。<b>棚の中身（フォルダ・投稿・いいね）は、運営にも読めません。</b>削除の依頼（著作権・通報）があったときだけ、棚を指定して消してください。消すと、メンバー・いいね・通報の記録と招待コードが消え、誰も棚の中身を見られなくなります（ドライブのファイルは、投稿者のものなので、そのままです）。</p>
+    <div class="adm-tools"><button type="button" class="adm-btn" id="admShelvesLoad">棚の一覧を読み込む</button></div>
+    <p class="adm-msg" id="admMsg3" role="alert" hidden></p>
+    <div class="adm-wrap">
+      <table class="adm-table">
+        <thead><tr><th>棚の名前</th><th>人数</th><th>作成日</th><th>棚の番号</th><th>操作</th></tr></thead>
+        <tbody id="admShelves"></tbody>
+      </table>
+    </div>
+  </section>
 </main>
 <script src="js/fbconfig.js"></script>
 <script src="js/admin.js"></script>

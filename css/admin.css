@@ -33,3 +33,4 @@ body { margin: 0; background: var(--bg); color: var(--text); font: 15px/1.7 "Yu 
 .adm-table tr.banned td.nick { text-decoration: line-through; opacity: .7; }
 .adm-table td.adm-empty { text-align: center; color: var(--text-2); padding: 22px; }
 .adm-note { margin: 12px 0 0; font-size: 12px; color: var(--text-2); line-height: 1.8; }
+.adm-h2 { margin: 0 0 6px; font-size: 15px; }
