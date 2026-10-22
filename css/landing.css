@@ -162,3 +162,20 @@ html[data-landing="on"] #app, html[data-landing="on"] #print-root { display: non
   .ld-choose { grid-template-columns: 1fr; gap: 10px; }
   .ld-card { padding: 16px 18px 18px; }
 }
+
+/* ---------- AI 機能について ---------- */
+.ld-ai { margin: 0 0 34px; }
+.ld-ais { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; }
+.ld-aic { background: var(--panel); border: 1px solid var(--line); border-radius: var(--radius); padding: 16px 16px 18px; box-shadow: 0 1px 3px var(--shadow-c); display: flex; flex-direction: column; gap: 6px; }
+.ld-aic b { font-size: 15px; color: var(--accent-text); }
+.ld-aic .ld-tag { align-self: flex-start; font-style: normal; font-size: 11.5px; font-weight: 700; padding: 1px 9px; border-radius: 99px; background: var(--accent-soft); color: var(--accent-text); }
+.ld-aic span { font-size: 13px; line-height: 1.8; color: var(--text-2); }
+.ld-aic em { display: block; margin-top: 6px; font-style: normal; font-size: 12px; line-height: 1.75; color: var(--warn); background: var(--warn-soft); border-radius: var(--r-sm, 6px); padding: 6px 9px; }
+.ld-ai-pts { margin: 14px 0 0; padding-left: 20px; font-size: 13px; line-height: 1.9; color: var(--text-2); }
+@media (max-width: 760px) {
+  .ld-ais { grid-template-columns: 1fr; gap: 8px; }
+  .ld-aic { padding: 12px 14px 14px; }
+  .ld-aic b { font-size: 14px; }
+  .ld-aic span { font-size: 12.5px; line-height: 1.7; }
+}
+.ld-aic .ld-soon { color: var(--warn); }

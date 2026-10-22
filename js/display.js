@@ -1,4 +1,4 @@
-/* 「表示の設定」画面：目的から選ぶ・テーマ・明るさ・文字の大きさ・角の丸み・画面の種類・夜の自動切り替え。
+/* 「表示の設定」画面：目的から選ぶ・テーマ・明るさ・文字の大きさ・文字のフォント・角の丸み・画面の種類・夜の自動切り替え。
  * 選ぶとすぐ反映される（保存ボタンは無い）。スマホ用のメニューには、同じ内容の簡易版（quickHtml）を置く。 */
 (function (root) {
   'use strict';
@@ -22,6 +22,16 @@
       '<button type="button" data-act="disp-editor" data-v="' + it[0] + '" class="' + (editorMode() === it[0] ? 'on' : '') + '">' + it[1] + '</button>').join('') + '</div>',
     '「その場で…」：書いた文字が、書いたその場で、完成した見た目になります（カーソルのある所だけ、記号が見えます）。「従来の分割表示」：書く枠と見る枠が、2つに分かれます。うまく動かないときは、こちらに切り替えてください。この設定は、この端末（ブラウザ）だけに保存されます。') : '');
 
+  /* 文字のフォント：この端末に入っているものだけを、それぞれの書体の見本つきで並べる（選ぶとすぐ、ノートの本文・プレビュー・印刷プリントに反映） */
+  const FONT_SAMPLE = '光合成は葉緑体で行う。ABC 123';
+  const fontField = () => {
+    const cur = T.get().font, list = (T.FONTS || []).filter((f) => f.id === cur || T.fontAvailable(f));
+    return field('文字のフォント（ノートの本文・プリント）',
+      '<div class="font-grid">' + list.map((f) => '<button type="button" class="font-card' + (cur === f.id ? ' on' : '') + '" data-act="disp-set" data-k="font" data-v="' + f.id + '">' +
+        '<b>' + esc(f.name) + '</b><span class="fc-sample" style="font-family:' + esc(f.stack || 'var(--font)') + '">' + FONT_SAMPLE + '</span><small>' + esc(f.note) + '</small></button>').join('') + '</div>',
+      'この端末に入っているフォントから選べます（いま ' + list.length + ' 種類）。画面の部品（ボタンなど）は変わらず、ノートの本文・プレビュー・印刷プリントの字が変わります。パソコンとスマホで、別々に選べます（この端末だけに保存）。入っていないフォントは、表示されません。');
+  };
+
   function fullHtml() {
     const p = T.get(), cur = p.theme, info = T.THEMES.find((t) => t.id === cur) || T.THEMES[0];
     const purpose = T.THEMES.filter((t) => t.group === 'purpose'), base = T.THEMES.filter((t) => t.group === 'base');
@@ -33,7 +43,7 @@
       '<div class="th-info"><b>' + esc(info.name) + '</b>　<span>' + esc(info.tag) + '</span><br>' + esc(info.why) + '<br><small>色の感じ方や効果には個人差があります。気軽に試して、合うものを選んでください。</small></div></div>' +
       field('明るさ', seg('mode', [['light', 'ライト'], ['dark', 'ダーク'], ['auto', '端末に合わせる']])) +
       field('夜は自動で「夜」テーマにする', seg('night', [['off', 'しない'], ['on', 'する']]), '21時から朝5時までは、選んだテーマにかかわらず「夜」テーマ（暖色で、まぶしさを抑えた配色）になります。朝になると元に戻ります。') +
-      field('文字の大きさ（ノートの本文）', seg('size', [['s', '小'], ['m', '標準'], ['l', '大']])) + editorField() +
+      field('文字の大きさ（ノートの本文）', seg('size', [['s', '小'], ['m', '標準'], ['l', '大']])) + fontField() + editorField() +
       field('角の丸み', seg('round', [['s', '角ばった'], ['m', '標準'], ['l', '丸い']])) +
       field('画面の種類', seg('layout', [['auto', '自動'], ['pc', 'パソコン用'], ['phone', 'スマホ用']]), '自動：画面の幅で切り替わります。この設定は、この端末（ブラウザ）だけに保存されます。');
   }
@@ -44,7 +54,7 @@
     return '<div class="dlg-field"><label class="l">デザイン</label><div class="th-chips">' + T.THEMES.map((t) =>
       '<button type="button" class="th-chip' + (cur === t.id ? ' on' : '') + '" data-act="disp-set" data-k="theme" data-v="' + t.id + '">' + swatch(t) + '<span>' + esc(t.name) + '</span></button>').join('') + '</div>' +
       seg('mode', [['light', 'ライト'], ['dark', 'ダーク'], ['auto', '端末に合わせる']]) +
-      '<button type="button" class="btn block" style="margin-top:8px" data-act="m-go" data-go="display">くわしい設定…（目的から選ぶ・文字の大きさ など）</button></div>';
+      '<button type="button" class="btn block" style="margin-top:8px" data-act="m-go" data-go="display">くわしい設定…（目的から選ぶ・文字の大きさ・フォント など）</button></div>';
   }
   d.quickHtml = quickHtml;
 

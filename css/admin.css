@@ -1,0 +1,35 @@
+/* 運営用の名簿（admin.html）。アプリ本体とは独立した、簡素な見た目 */
+:root { --bg: #f5f4f0; --panel: #fff; --text: #1d1d1b; --text-2: #55534e; --line: #dcdad3; --accent: #2f5bea; --danger: #c0392b; --ok: #2e7d4f; }
+@media (prefers-color-scheme: dark) { :root { --bg: #1b1b1a; --panel: #262624; --text: #ecebe6; --text-2: #b4b2a9; --line: #3c3b38; --accent: #7da2ff; --danger: #ff8a7a; --ok: #7fd6a0; } }
+* { box-sizing: border-box; }
+body { margin: 0; background: var(--bg); color: var(--text); font: 15px/1.7 "Yu Gothic UI", "Meiryo", system-ui, sans-serif; }
+.adm { max-width: 960px; margin: 0 auto; padding: 24px 16px 60px; }
+.adm-head h1 { margin: 0 0 6px; font-size: 22px; }
+.adm-lead { margin: 0 0 18px; color: var(--text-2); font-size: 13.5px; }
+.adm-card { background: var(--panel); border: 1px solid var(--line); border-radius: 12px; padding: 18px; margin-bottom: 16px; }
+.adm-card[hidden] { display: none; }
+.adm-btn { font: inherit; font-size: 13px; font-weight: 700; padding: 7px 14px; border-radius: 8px; border: 1px solid var(--line); background: var(--panel); color: var(--text); cursor: pointer; }
+.adm-btn:hover { border-color: var(--text-2); }
+.adm-btn.primary { background: var(--accent); border-color: var(--accent); color: #fff; }
+.adm-btn.danger { color: var(--danger); }
+.adm-btn.sm { padding: 3px 10px; font-size: 12px; }
+.adm-btn:disabled { opacity: .55; cursor: default; }
+.adm-msg { margin: 10px 0 0; font-size: 13px; color: var(--danger); }
+.adm-msg[hidden] { display: none; }
+.adm-stats { display: grid; grid-template-columns: repeat(auto-fit, minmax(120px, 1fr)); gap: 10px; margin-bottom: 14px; }
+.adm-stat { border: 1px solid var(--line); border-radius: 10px; padding: 8px 12px; }
+.adm-stat b { display: block; font-size: 20px; line-height: 1.3; }
+.adm-stat span { font-size: 12px; color: var(--text-2); }
+.adm-tools { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 10px; }
+.adm-tools input { flex: 1; min-width: 160px; font: inherit; font-size: 14px; padding: 7px 10px; border-radius: 8px; border: 1px solid var(--line); background: var(--panel); color: var(--text); }
+.adm-wrap { overflow-x: auto; }
+.adm-table { width: 100%; border-collapse: collapse; font-size: 13.5px; }
+.adm-table th, .adm-table td { text-align: left; padding: 8px 10px; border-bottom: 1px solid var(--line); white-space: nowrap; }
+.adm-table th { font-size: 12px; color: var(--text-2); }
+.adm-table td.nick { font-weight: 700; white-space: normal; word-break: break-all; min-width: 8em; }
+.adm-table td.pid { font-family: Consolas, monospace; color: var(--text-2); }
+.adm-table td.st-ok { color: var(--ok); font-weight: 700; }
+.adm-table td.st-ban { color: var(--danger); font-weight: 700; }
+.adm-table tr.banned td.nick { text-decoration: line-through; opacity: .7; }
+.adm-table td.adm-empty { text-align: center; color: var(--text-2); padding: 22px; }
+.adm-note { margin: 12px 0 0; font-size: 12px; color: var(--text-2); line-height: 1.8; }

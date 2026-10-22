@@ -43,8 +43,7 @@
     toDOM() {
       let data = '';
       if (this.src.startsWith('img:')) data = (LN.images || {})[this.src.slice(4)] || '';
-      else if (/^https?:\/\//.test(this.src)) data = this.src;
-      if (!data) { const m = doc.createElement('span'); m.className = 'img-missing'; m.textContent = '［画像が見つかりません］'; return m; }
+      if (!data) { const m = doc.createElement('span'); m.className = 'img-missing'; m.textContent = /^https?:\/\//.test(this.src) ? '［外部サイトの画像は、安全のため表示しません］' : '［画像が見つかりません］'; return m; } // 外部サイトの画像は読み込まない（追跡用の画像を防ぐ）
       const i = doc.createElement('img'); i.src = data; i.alt = this.alt || ''; i.className = 'ln-img'; i.draggable = false;
       return i;
     }
@@ -145,6 +144,19 @@
   /** 文の中の記号（==重要== {{穴埋め}} など）を、その場で見た目に変える。プレビュー（LN.md.inline）と同じ順序・同じ規則 */
   function inlineDecos(out, text, base, sel) {
     if (!text) return;
+    const MAX = LN.md.INLINE_MAX || 4000; // 極端に長い文は、区切って処理する（markdown.js の inline と同じ理由：正規表現が長さの2乗で遅くなるため）
+    if (text.length > MAX) {
+      for (let i = 0; i < text.length;) {
+        let j = Math.min(text.length, i + MAX);
+        if (j < text.length) { const cut = Math.max(text.lastIndexOf(' ', j), text.lastIndexOf('\n', j)); if (cut > i + MAX / 2) j = cut + 1; }
+        inlineDecosOne(out, text.slice(i, j), base + i, sel);
+        i = j;
+      }
+      return;
+    }
+    inlineDecosOne(out, text, base, sel);
+  }
+  function inlineDecosOne(out, text, base, sel) {
     let s = text;
     const mask = (a, b) => { s = s.slice(0, a) + '\u0000'.repeat(b - a) + s.slice(b); };
     const find = (re) => { re.lastIndex = 0; const r = []; let m; while ((m = re.exec(s))) r.push(m); return r; };

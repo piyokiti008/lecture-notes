@@ -303,6 +303,13 @@ dialog::backdrop { background: rgba(20, 20, 24, .45); }
 .ai-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
 .ai-diagram-preview { border: 1px solid var(--line); border-radius: var(--radius); background: #fff; padding: 8px; text-align: center; min-height: 120px; display: grid; place-items: center; }
 .ai-diagram-preview img { max-width: 100%; height: auto; max-height: 360px; }
+.dg-styles { display: grid; grid-template-columns: repeat(auto-fill, minmax(112px, 1fr)); gap: 8px; }
+.dg-style { border: 2px solid var(--line); border-radius: var(--r-sm); background: var(--panel); padding: 4px; cursor: pointer; text-align: center; font: inherit; font-size: 11.5px; color: var(--text-2); display: grid; gap: 4px; }
+.dg-style img { width: 100%; height: 66px; object-fit: contain; background: #fff; border-radius: 4px; }
+.dg-style:hover { border-color: var(--accent); }
+.dg-style[aria-pressed="true"] { border-color: var(--accent); color: var(--accent-text); font-weight: 600; }
+.dg-bp summary { cursor: pointer; font-size: 12.5px; color: var(--text-2); margin: 4px 0; }
+.dg-bp textarea { width: 100%; min-height: 170px; font-family: ui-monospace, Consolas, monospace; font-size: 12px; box-sizing: border-box; }
 .ai-chip { display: inline-block; font-size: 11.5px; padding: 2px 9px; border: 1px solid var(--line); border-radius: 99px; background: var(--panel); cursor: pointer; color: var(--text-2); margin: 0 4px 4px 0; }
 .ai-chip:hover { border-color: var(--accent); color: var(--accent-text); }
 .ai-sheet-item { display: flex; align-items: center; gap: 6px; padding: 6px 8px; border: 1px solid var(--line); border-radius: var(--r-sm); font-size: 12.5px; cursor: pointer; }
@@ -353,6 +360,15 @@ kbd { display: inline-block; padding: 0 7px; margin: 0 1px; font: inherit; font-
 .th-card.on { border-color: var(--accent); background: var(--accent-soft); }
 .th-card b { font-size: 13px; }
 .th-card small { font-size: 11.5px; color: var(--text-3); }
+/* 文字のフォントの選択（設定画面）：それぞれの書体で、見本の文を表示する */
+.font-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+.font-card { display: flex; flex-direction: column; align-items: flex-start; gap: 3px; text-align: left; padding: 9px 10px; border: 1.5px solid var(--line); background: var(--panel); border-radius: var(--radius); min-width: 0; }
+.font-card:hover { border-color: var(--text-3); }
+.font-card.on { border-color: var(--accent); background: var(--accent-soft); }
+.font-card b { font-size: 12.5px; }
+.font-card .fc-sample { font-size: 15px; line-height: 1.45; color: var(--text); overflow-wrap: anywhere; }
+.font-card small { font-size: 11px; color: var(--text-3); }
+html.is-phone .font-grid { grid-template-columns: 1fr; }
 .th-sw { position: relative; display: block; width: 100%; height: 34px; border-radius: var(--r-sm); border: 1px solid var(--line); margin-bottom: 6px; background: linear-gradient(115deg, var(--l) 50%, var(--d) 50%); }
 .th-sw i { position: absolute; left: 50%; top: 50%; width: 16px; height: 16px; margin: -8px 0 0 -8px; border-radius: 50%; background: var(--a); box-shadow: 0 0 0 2px rgba(255,255,255,.55); }
 .disp-box { display: flex; flex-direction: column; gap: 14px; }
@@ -369,3 +385,41 @@ kbd { display: inline-block; padding: 0 7px; margin: 0 1px; font: inherit; font-
 .th-chip { flex: none; width: 92px; display: flex; flex-direction: column; align-items: stretch; gap: 4px; padding: 6px; border: 1.5px solid var(--line); background: var(--panel); border-radius: var(--radius); font-size: 11.5px; font-weight: 700; text-align: center; }
 .th-chip .th-sw { height: 26px; margin: 0; }
 .th-chip.on { border-color: var(--accent); background: var(--accent-soft); color: var(--accent-text); }
+
+/* ---------- しまえる部分（パソコン用）：周りの欄をワンクリックでしまって、書く場所・プリントを広く使う ----------
+   しまった欄は細い帯になり、帯のどこを押しても戻る。スマホ用（1画面ずつ）では、ボタンも帯も出さない */
+.fold-btn { display: inline-grid; place-items: center; width: 26px; height: 26px; flex: none; padding: 0; border: 0; border-radius: 6px; background: transparent; color: var(--text-3); cursor: pointer; }
+.fold-btn:hover { background: var(--line-2); color: var(--text); }
+.fold-btn svg { transform: rotate(180deg); }
+.fold-btn[aria-expanded="false"] svg { transform: none; }
+.fold-btn[data-fold="head"] svg { transform: rotate(-90deg); }
+.fold-btn[data-fold="head"][aria-expanded="false"] svg { transform: rotate(90deg); }
+.side-rail, .fold-strip { display: none; }
+html.is-phone .fold-btn, html.is-phone .side-rail, html.is-phone .fold-strip, html.is-phone .opt-bar { display: none !important; }
+.brand .fold-btn { margin-left: auto; }
+.fold-strip { flex-direction: column; align-items: center; gap: 10px; padding: 10px 0; cursor: pointer; }
+.fold-strip:hover { background: var(--line-2); }
+.fold-lbl { writing-mode: vertical-rl; font-size: 12px; font-weight: 700; letter-spacing: .12em; color: var(--text-3); white-space: nowrap; }
+.opt-bar { display: flex; align-items: center; justify-content: space-between; position: sticky; top: 0; z-index: 2; margin: -16px -18px 20px; padding: 8px 12px 8px 18px; background: var(--panel); border-bottom: 1px solid var(--line-2); font-size: 12.5px; }
+.opt-bar b { color: var(--text-2); }
+.ed-head { position: relative; }
+.ed-head > .fold-btn { position: absolute; top: 14px; right: 14px; }
+html:not(.is-phone) .ed-head .title-input { padding-right: 36px !important; }
+html:not(.is-phone) .app.fold-head .ed-meta { display: none; }
+html:not(.is-phone) .app.fold-head .ed-head { padding-bottom: 6px; }
+html:not(.is-phone) .app.fold-side { grid-template-columns: 46px 1fr; }
+html:not(.is-phone) .app.fold-side .sidebar > :not(.side-rail) { display: none; }
+html:not(.is-phone) .app.fold-side .side-rail { display: flex; flex: 1; flex-direction: column; align-items: center; gap: 6px; padding: 10px 0 12px; }
+html:not(.is-phone) .side-rail .nav-btn { width: 34px; height: 34px; padding: 0; justify-content: center; font-size: 0; gap: 0; }
+html:not(.is-phone) .side-rail .rail-menu { margin-top: auto; }
+html:not(.is-phone) .app.fold-list .list-col, html:not(.is-phone) .app.fold-range .range-col, html:not(.is-phone) .app.fold-opt .opt-col { display: flex; flex-direction: column; width: 38px; padding: 0; overflow: hidden; }
+html:not(.is-phone) .app.fold-list .list-col > :not(.fold-strip), html:not(.is-phone) .app.fold-range .range-col > :not(.fold-strip), html:not(.is-phone) .app.fold-opt .opt-col > :not(.fold-strip) { display: none; }
+html:not(.is-phone) .app.fold-list .list-col > .fold-strip, html:not(.is-phone) .app.fold-range .range-col > .fold-strip, html:not(.is-phone) .app.fold-opt .opt-col > .fold-strip { display: flex; flex: 1; }
+@media (max-width: 1100px) {
+  html:not(.is-phone) .app.fold-opt .opt-col { width: auto; max-height: none; }
+  html:not(.is-phone) .app.fold-opt .opt-col > .fold-strip { flex: none; flex-direction: row; padding: 6px 12px; }
+  html:not(.is-phone) .app.fold-opt .opt-col .fold-lbl { writing-mode: horizontal-tb; letter-spacing: 0; }
+}
+@media (max-width: 860px) {
+  html:not(.is-phone) .brand .fold-btn { display: none; }
+}

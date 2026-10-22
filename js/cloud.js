@@ -1,7 +1,8 @@
 /* Google ログイン ＋ 各自の Google ドライブへの自動保存（運営のサーバーは無い）
  *
  *  - ログイン：Google Identity Services のトークン方式（ポップアップ）。権限は「このアプリが作ったファイルだけ」(drive.file) と基本情報のみ。
- *  - 名簿：ログインのたびに Firebase Authentication へ記録する（管理画面で人数の確認・個別停止ができる）。送るのはログイン情報だけで、ノートの中身は送らない。
+ *  - 名簿（js/roster.js）：運営に見えるのは「ニックネーム・登録日・最後に使った日・停止の有無」だけ。Google アカウント（メール・名前）は送らない
+ *    （アカウントIDをこの端末で一方向に変換した「番号」で識別する）。ログインのたびに、停止中でないか確かめる。ノートの中身は送らない。
  *  - 保存：ブラウザ内（IndexedDB）への保存が常に先。ドライブへは裏で同期する。ドライブの「講義ノート」フォルダに、
  *          文字データ(JSON 1つ)と、貼り付けた画像（画像ごとに1ファイル）を置く。
  *  - 同期するのは「中身」（教科・単元・ノート・考査・AIプリント）だけ。表示位置や設定は端末ごと。
@@ -12,16 +13,17 @@
   'use strict';
   const LN = (root.LN = root.LN || {});
 
-  // 公開されても問題ない識別子（秘密ではない）。Firebase プロジェクト p-notes-4ed2b の Web クライアント
+  // 公開されても問題ない識別子（秘密ではない）は、js/fbconfig.js（Firebase プロジェクト p-notes-4ed2b の Web クライアント）
+  const FB = LN.fbConfig || {};
   const cfg = {
-    clientId: '473111156744-0s1sg9m5i452mnr0edcdg0a6uk12s697.apps.googleusercontent.com',
-    apiKey: 'AIzaSyCNVYjLftIeUTu0H5OQ6Tsk5tyE9PXUwGE',
+    clientId: FB.clientId,
+    apiKey: FB.apiKey,
     scope: 'https://www.googleapis.com/auth/drive.file openid email profile',
     gisSrc: 'https://accounts.google.com/gsi/client',
     drive: 'https://www.googleapis.com/drive/v3',
     upload: 'https://www.googleapis.com/upload/drive/v3',
     userinfo: 'https://www.googleapis.com/oauth2/v3/userinfo',
-    roster: 'https://identitytoolkit.googleapis.com/v1/accounts:signInWithIdp',
+    roster: FB.roster,   // ニックネーム名簿（Firestore の members）。Google アカウントは送らない
     pushDelayMs: 4000,   // 編集が止まってからドライブへ送るまでの待ち
     pollMs: 90000,       // 他の端末の変更を確かめる間隔（画面が見えているとき）
     gis: null,           // テスト用：Google のログイン部品の代わり
@@ -43,7 +45,7 @@
   const BOOK_KEY = 'ln.cloud.v1', SKIP_KEY = 'ln.cloud.skip';
   const lsGet = (k) => { try { return JSON.parse(root.localStorage.getItem(k)); } catch (e) { return null; } };
   const lsSet = (k, v) => { try { root.localStorage.setItem(k, JSON.stringify(v)); } catch (e) { /* 書けなくても動く */ } };
-  let book = lsGet(BOOK_KEY) || {};   // { enabled, sub, email, name, folderId, fileId, baseVersion, lastHash, dirty, images:{id:fileId}, lastSync }
+  let book = lsGet(BOOK_KEY) || {};   // { enabled, sub, email, name, nick, nickHide, nickPending, folderId, fileId, baseVersion, lastHash, dirty, images:{id:fileId}, lastSync }（email・name は、この端末の画面に出すためだけ。名簿には送らない）
   if (!book.images) book.images = {};
   const saveBook = () => lsSet(BOOK_KEY, book);
 
@@ -137,18 +139,32 @@
   }
   const apiJson = async (url, init) => (await api(url, init)).json();
 
-  /** 名簿への記録。利用停止にされたアカウントなら 'disabled'。名簿に届かなかっただけなら、利用は止めない */
-  async function rosterCheck() {
+  /* ---------- ニックネーム名簿（js/roster.js）。送るのは「番号（アカウントIDを一方向に変換したもの）・ニックネーム・日時」だけ ---------- */
+  const R = () => LN.roster;
+  const rconf = () => ({ url: cfg.roster, key: cfg.apiKey });
+
+  /** 名簿に問い合わせる：{ pid, ok, exists, nick, banned } か { ok:false, error }。名簿に届かなかっただけなら、利用は止めない */
+  async function rosterLookup(sub) {
     try {
-      const r = await fetch(cfg.roster + '?key=' + encodeURIComponent(cfg.apiKey), {
-        method: 'POST', headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ postBody: 'access_token=' + encodeURIComponent(token) + '&providerId=google.com', requestUri: root.location.origin, returnSecureToken: true, returnIdpCredential: false }),
-      });
-      if (r.ok) return 'ok';
-      const j = await r.json().catch(() => ({}));
-      const msg = (j && j.error && j.error.message) || '';
-      return /USER_DISABLED/.test(msg) ? 'disabled' : 'unknown:' + msg;
-    } catch (e) { return 'unknown:' + e.message; }
+      const pid = await R().pidOf(sub);
+      return Object.assign({ pid }, await R().get(pid, rconf()));
+    } catch (e) { return { ok: false, error: (e && e.message) || 'error' }; }
+  }
+
+  /** ニックネームを名簿に載せる（まだ無ければ作る／あれば、ニックネームと最終利用日を更新）。届かなければ、あとで送る */
+  async function rosterRegister(sub, nick, look) {
+    try {
+      const pid = (look && look.pid) || await R().pidOf(sub);
+      let known = look && look.ok ? look : await R().get(pid, rconf());
+      let r;
+      if (!known.ok) r = known;
+      else if (!known.exists) { r = await R().create(pid, nick, rconf()); if (r.ok && r.exists) r = await R().touch(pid, nick, rconf()); }
+      else r = await R().touch(pid, known.nick === nick ? null : nick, rconf());
+      if (r.ok) { book.nickPending = false; saveBook(); return true; }
+      book.nickPending = true; saveBook();
+      console.warn('名簿への記録に失敗しました（利用は続けられます。あとで送り直します）：', r.error);
+      return false;
+    } catch (e) { book.nickPending = true; saveBook(); return false; }
   }
 
   /* ---------- Google ドライブの操作 ---------- */
@@ -465,10 +481,20 @@
       const info = await apiJson(cfg.userinfo);
       if (!info || !info.sub) throw new Error('アカウント情報を取得できませんでした');
 
-      const roster = await rosterCheck();
-      c.rosterStatus = roster; // 'ok' / 'disabled' / 'unknown:…'（名簿に届かなかった理由。確認用）
-      if (roster.startsWith('unknown')) console.warn('名簿への記録に失敗しました（利用は続けられます）：', roster);
-      if (roster === 'disabled') { c.lastError = 'blocked'; token = null; setStatus('blocked'); if (!o.quiet) showBlocked(info); return false; }
+      // 名簿に問い合わせる（停止中でないか・ニックネームは登録済みか）。Google アカウント（メール・名前・トークン）は送らない
+      const look = await rosterLookup(info.sub);
+      c.rosterStatus = look.ok ? (look.banned ? 'banned' : 'ok') : 'unknown:' + look.error; // 'ok' / 'banned' / 'unknown:…'（名簿に届かなかった理由。確認用）
+      if (!look.ok) console.warn('名簿に問い合わせられませんでした（利用は続けられます）：', look.error);
+      if (look.ok && look.banned) { c.lastError = 'blocked'; token = null; setStatus('blocked'); if (!o.quiet) showBlocked(info); return false; }
+
+      // ニックネーム：名簿にあればそれを使う。無ければ、この端末に控えがあればそれ。どちらも無い新しい人には、ここで決めてもらう（やめたらログインしない）
+      const sameAcct = !book.sub || book.sub === info.sub;
+      let nick = (look.ok && look.nick) || (book.sub === info.sub ? book.nick : '') || '';
+      if (!nick && !o.auto && !(book.sub === info.sub && book.nickHide)) {
+        const a = await askNickname({ first: true });
+        if (!a.nick) { c.lastError = 'cancel'; token = null; setStatus(book.enabled ? 'needlogin' : 'off'); return false; }
+        nick = a.nick;
+      }
 
       if (book.sub && book.sub !== info.sub) { // このブラウザのノートは別のアカウントのもの
         if (!(await confirmSwitch(info))) { c.lastError = 'cancel'; token = null; setStatus(book.enabled ? 'needlogin' : 'off'); return false; }
@@ -480,8 +506,9 @@
         } finally { applying = false; }
         U.reload(); // 表示を空に（このあと、新しいアカウントのドライブの内容を取り込む）
       }
-      Object.assign(book, { sub: info.sub, email: info.email || '', name: info.name || '', enabled: true });
+      Object.assign(book, { sub: info.sub, email: info.email || '', name: info.name || '', enabled: true, nick: nick || (sameAcct ? book.nick : '') || '' });
       saveBook();
+      if (nick) await rosterRegister(info.sub, nick, look); // 名簿に、ニックネームと「最後に使った日」を載せる（届かなければ、あとで送る）
       autoTried = false;
       await guarded(() => reconcile({ manual: !o.auto }));
       return true;
@@ -535,9 +562,67 @@
 
   /* ---------- 画面 ---------- */
   const PRIVACY = '<div class="bk-box">' +
-    '<b>運営（このアプリの作者）に見えるもの：</b>ログインしたアカウントの一覧（メールアドレス・名前）だけです。<br>' +
+    '<b>運営（このアプリの作者）に見えるもの：</b>あなたが決めた<b>ニックネーム</b>と、登録日・最後に使った日だけです。<b>Google アカウント（メールアドレス・名前）は、運営には届かず、見えません。</b><br>' +
     '<b>運営に見えないもの：</b>ノートの中身。ノートは<b>あなた自身の Google ドライブ</b>に保存され、運営は読めません。<br>' +
-    'このアプリが使う権限は「このアプリが作ったファイルだけ」で、ドライブの他のファイルには触れません。</div>';
+    '運営が利用者にできるのは、不正な使い方があったときの<b>利用停止</b>だけです。このアプリが使う権限は「このアプリが作ったファイルだけ」で、ドライブの他のファイルには触れません。</div>';
+
+  /* ---------- ニックネーム ---------- */
+  const NICK_RULES = '<div class="bk-box">' +
+    '・<b>製作者と知り合いの方</b>は、製作者が「あの人だ」と分かるニックネームにしてください。フィードバックを、直接お聞きしに行きやすくなります。<br>' +
+    '・知り合いでない方は、好きな名前で構いません。<br>' +
+    '・<b>本名・メールアドレス・電話番号は、書かないでください。</b>（ニックネームは、運営の管理画面に、そのまま表示されます）<br>' +
+    '・あとから、メニューの「ログインと自動保存」で、いつでも変えられます。</div>';
+
+  /** ニックネームを聞く。{ nick, hide } か { cancelled:true, hide }（hide＝「この案内を今後表示しない」にチェックして閉じた）。入力が正しくなければ、理由を出して聞き直す */
+  async function askNickname(opt) {
+    opt = opt || {};
+    let value = opt.value || '', err = '';
+    for (;;) {
+      let hideOnCancel = false;
+      const r = await U.ask({
+        title: opt.title || (opt.first ? 'ニックネームを決めてください' : 'ニックネーム'),
+        message: opt.message || ('<b>運営（このアプリの作者）に見えるのは、このニックネームだけです。</b>Google アカウント（メールアドレス・名前）は、運営には届かず、見えません。') + (err ? '<br><b style="color:var(--danger)">' + esc(err) + '</b>' : ''),
+        body: NICK_RULES,
+        fields: [{ name: 'nick', label: 'ニックネーム（' + R().MAX + '文字まで）', value, placeholder: '例：ぴよきち', required: true }].concat(opt.hide ? [{ name: 'hide', type: 'checkbox', label: 'この案内を今後表示しない（決めたあと、または、決めたくないときにチェック）', value: false }] : []),
+        ok: opt.ok || '決定', cancelText: opt.cancel || 'やめる',
+        onOpen(form) { const cb = form.querySelector('[data-dlg=cancel]'); if (cb && opt.hide) cb.addEventListener('click', () => { hideOnCancel = !!(form.elements.hide && form.elements.hide.checked); }); },
+      });
+      if (!r) return { cancelled: true, hide: hideOnCancel };
+      const chk = R().checkNick(r.nick);
+      if (chk.ok) return { nick: chk.nick, hide: !!r.hide };
+      value = r.nick; err = chk.error;
+    }
+  }
+
+  /** すでにログインしている人（ニックネーム未登録）に、一度、決めてもらう。トークンは要らない（番号はこの端末の記録から作れる） */
+  let offering = false;
+  async function offerNickname() {
+    if (offering || !book.enabled || book.nick || book.nickHide || !book.sub) return;
+    offering = true;
+    try {
+      await whenIdle();
+      if (!book.enabled || book.nick || book.nickHide) return;
+      const a = await askNickname({
+        title: 'ニックネームを決めましょう', ok: '登録する', cancel: 'あとで決める', hide: true,
+        message: '<b>ログインした人を、運営が確認する方法を変えました。</b>これまでは Google アカウント（メールアドレス・名前）の一覧でしたが、これからは、<b>あなたが決めたニックネームだけ</b>が運営に見えます。Google アカウントは、運営には見えなくなります。',
+      });
+      if (a.nick) {
+        book.nick = a.nick; book.nickHide = true; saveBook(); // 決めた人には、もう出さない
+        const ok = await rosterRegister(book.sub, a.nick, null);
+        toast(ok ? 'ニックネームを登録しました' : 'ニックネームを控えました（インターネットにつながったときに、運営へ送ります）');
+      } else if (a.hide) { book.nickHide = true; saveBook(); } // 「表示しない」を選んだ人には、もう出さない
+    } finally { offering = false; }
+  }
+
+  /** メニューの「ログインと自動保存」から、ニックネームを決める・変える */
+  async function editNickname() {
+    if (!book.sub) return;
+    const a = await askNickname({ title: book.nick ? 'ニックネームを変える' : 'ニックネームを決める', value: book.nick || '', ok: '保存' });
+    if (!a.nick) return;
+    book.nick = a.nick; book.nickHide = true; saveBook();
+    const ok = await rosterRegister(book.sub, a.nick, null);
+    toast(ok ? 'ニックネームを保存しました' : 'ニックネームを控えました（インターネットにつながったときに、運営へ送ります）');
+  }
 
   function closeDlg() { const d = root.document.getElementById('dlg'); if (d && d.open) d.close(); }
   const fmt = (t) => (t ? new Date(t).toLocaleString('ja-JP') : 'まだありません');
@@ -552,7 +637,8 @@
         '<div style="margin-top:10px"><button type="button" class="btn primary" data-act="cloud-login">Google でログイン</button></div>';
     } else {
       const link = book.folderId ? '<a href="https://drive.google.com/drive/folders/' + encodeURIComponent(book.folderId) + '" target="_blank" rel="noopener noreferrer">ドライブで保存先を開く</a>' : '';
-      body = '<div class="bk-box' + (d.dot === 'dotwarn' ? ' warn' : '') + '">アカウント：<b>' + esc(book.email || '') + '</b><br>状態：<b>' + esc(d.text) + '</b>' + (c.message ? '（' + esc(c.message) + '）' : '') +
+      body = '<div class="bk-box' + (d.dot === 'dotwarn' ? ' warn' : '') + '">アカウント：<b>' + esc(book.email || '') + '</b>（この画面だけに表示されます。運営には送られません）<br>ニックネーム：' +
+        (book.nick ? '<b>' + esc(book.nick) + '</b>（運営にはこれだけが見えます）' : '<b>未設定</b>') + ' <button type="button" class="btn sm" data-act="cloud-nick">' + (book.nick ? '変える' : '決める') + '</button><br>状態：<b>' + esc(d.text) + '</b>' + (c.message ? '（' + esc(c.message) + '）' : '') +
         '<br>最後に同期：<b>' + esc(fmt(book.lastSync)) + '</b>' + (link ? '<br>' + link : '') + '</div>' +
         '<div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:10px">' +
         (tokenOk() ? '<button type="button" class="btn primary" data-act="cloud-sync">今すぐ同期</button>' : '<button type="button" class="btn primary" data-act="cloud-login">再接続</button>') +
@@ -581,6 +667,7 @@
     A['cloud'] = () => openDialog();
     A['cloud-login'] = () => { closeDlg(); connect({ prompt: book.email ? '' : 'select_account' }); };
     A['cloud-switch'] = () => { closeDlg(); connect({ prompt: 'select_account', hint: '' }); };
+    A['cloud-nick'] = async () => { closeDlg(); await editNickname(); };
     A['cloud-sync'] = async () => { closeDlg(); toast('同期しています…'); await c.sync({ manual: true }); if (c.status === 'synced') toast('同期しました'); };
     A['cloud-logout'] = async () => {
       closeDlg();
@@ -606,11 +693,14 @@
       preloadGis();
       setStatus('needlogin');
       armAutoReconnect();
+      // ニックネーム：控えがあるのに、まだ名簿に届いていなければ送り直す。未登録の人には、一度、決めてもらう（決めた人・「表示しない」を選んだ人には、もう出さない）
+      if (book.sub && book.nick && book.nickPending) setTimeout(() => { rosterRegister(book.sub, book.nick, null); }, 1500);
+      else if (!book.nick && !book.nickHide) setTimeout(() => { offerNickname(); }, cfg.offerDelayMs == null ? 1500 : cfg.offerDelayMs);
     }
     root.document.addEventListener('visibilitychange', () => { if (!root.document.hidden && book.enabled && tokenOk()) c.sync(); });
     setInterval(() => { if (!root.document.hidden && book.enabled && tokenOk() && !connecting) c.sync(); }, cfg.pollMs);
   };
 
   /* テストから状態を見るための窓口（本番の動作には使わない） */
-  c._test = { book: () => book, token: () => token, expire: () => { tokenExp = 0; }, hash, tokenOk };
+  c._test = { book: () => book, token: () => token, expire: () => { tokenExp = 0; }, hash, tokenOk, offerNickname };
 })(window);

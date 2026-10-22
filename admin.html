@@ -1,0 +1,47 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'self' https://accounts.google.com/gsi/client; style-src 'self' https://accounts.google.com/gsi/style; img-src 'self' data:; connect-src 'self' https://firestore.googleapis.com https://identitytoolkit.googleapis.com https://accounts.google.com/gsi/; object-src 'none'; base-uri 'none'; form-action 'none'; frame-src https://accounts.google.com/gsi/">
+<meta name="referrer" content="no-referrer">
+<meta name="robots" content="noindex, nofollow">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="js/frameguard.js"></script>
+<title>運営用の名簿</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='8' fill='%23444'/%3E%3Cpath d='M9 9h14M9 16h14M9 23h14' stroke='white' stroke-width='3' stroke-linecap='round'/%3E%3C/svg%3E">
+<link rel="stylesheet" href="css/admin.css">
+</head>
+<body>
+<main class="adm">
+  <header class="adm-head">
+    <h1>講義ノート　運営用の名簿</h1>
+    <p class="adm-lead">ここに見えるのは、利用者が自分で決めた<b>ニックネーム</b>と、登録日・最後に使った日だけです。Google アカウント（メールアドレス・名前）は、運営には届いておらず、見えません。</p>
+  </header>
+
+  <section id="admLogin" class="adm-card">
+    <p>運営の Google アカウントでログインしてください（このアカウントだけが、名簿を読めます。ほかの人がログインしても、何も見えません）。</p>
+    <button type="button" class="adm-btn primary" id="admGo">運営としてログイン</button>
+    <p class="adm-msg" id="admMsg" role="alert" hidden></p>
+  </section>
+
+  <section id="admMain" class="adm-card" hidden>
+    <div class="adm-stats" id="admStats" aria-live="polite"></div>
+    <div class="adm-tools">
+      <input type="search" id="admQ" placeholder="ニックネームで探す" autocomplete="off" aria-label="ニックネームで探す">
+      <button type="button" class="adm-btn" id="admReload">読み込み直す</button>
+      <button type="button" class="adm-btn" id="admOut">ログアウト</button>
+    </div>
+    <p class="adm-msg" id="admMsg2" role="alert" hidden></p>
+    <div class="adm-wrap">
+      <table class="adm-table">
+        <thead><tr><th>ニックネーム</th><th>番号</th><th>登録日</th><th>最後に使った日</th><th>状態</th><th>操作</th></tr></thead>
+        <tbody id="admRows"></tbody>
+      </table>
+    </div>
+    <p class="adm-note">「番号」は、同じニックネームの人を見分けるための、短い印です（アカウントには戻せません）。「利用停止」は、不正な使い方があったときだけ使ってください。停止にされた人は、次にログインしたときから、自動保存が使えなくなります（ノートは、その人のドライブとブラウザに残ります）。</p>
+  </section>
+</main>
+<script src="js/fbconfig.js"></script>
+<script src="js/admin.js"></script>
+</body>
+</html>

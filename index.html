@@ -2,10 +2,11 @@
 <html lang="ja">
 <head>
 <meta charset="utf-8">
-<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'self' https://accounts.google.com/gsi/client; style-src 'self' 'unsafe-inline' https://accounts.google.com/gsi/style; img-src 'self' data: blob:; media-src blob:; connect-src https://docs.google.com https://www.googleapis.com https://identitytoolkit.googleapis.com https://accounts.google.com/gsi/ https://generativelanguage.googleapis.com http://127.0.0.1:11434 http://localhost:11434; object-src 'none'; base-uri 'none'; form-action 'none'; frame-src https://accounts.google.com/gsi/">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'self' 'wasm-unsafe-eval' https://accounts.google.com/gsi/client; style-src 'self' 'unsafe-inline' https://accounts.google.com/gsi/style; img-src 'self' data: blob:; media-src blob:; connect-src 'self' https://docs.google.com https://www.googleapis.com https://firestore.googleapis.com https://accounts.google.com/gsi/ https://generativelanguage.googleapis.com http://127.0.0.1:11434 http://localhost:11434 https://huggingface.co https://*.hf.co; object-src 'none'; base-uri 'none'; form-action 'none'; frame-src https://accounts.google.com/gsi/">
 <meta name="referrer" content="no-referrer">
 <meta name="description" content="大学の講義メモを、教科・単元ごとに書きためて、考査前にはプリントにできるノート。無料・ダウンロード不要。ノートは自分の Google ドライブに保存されます。">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, interactive-widget=resizes-content">
+<script src="js/frameguard.js"></script>
 <script src="js/theme.js"></script>
 <title>講義ノート</title>
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='8' fill='%232f5bea'/%3E%3Cpath d='M9 8h11a3 3 0 0 1 3 3v13H12a3 3 0 0 1-3-3V8z' fill='none' stroke='white' stroke-width='2'/%3E%3Cpath d='M13 13h7M13 17h7' stroke='white' stroke-width='2' stroke-linecap='round'/%3E%3C/svg%3E">
@@ -32,7 +33,7 @@
           <button type="button" class="ld-go" data-ld="pc"><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="4" width="18" height="12" rx="2"/><path d="M8 20h8M12 16v4"/></svg>パソコン版ではじめる</button>
           <button type="button" class="ld-go" data-ld="phone"><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><rect x="7" y="2.5" width="10" height="19" rx="2.5"/><path d="M11 18.5h2"/></svg>スマホ版ではじめる</button>
         </div>
-        <p class="ld-cta-note">押すと、Google のログイン画面が開きます。</p>
+        <p class="ld-cta-note">押すと、Google のログイン画面が開きます。ログインのあと、はじめに「ニックネーム」を決めます（運営に見えるのは、ニックネームだけです）。</p>
         <div class="ld-msg" id="ldMsg" role="alert" hidden></div>
       </div>
     </header>
@@ -168,6 +169,21 @@
       </div>
     </section>
 
+    <section class="ld-ai" aria-labelledby="ldAiTitle">
+      <h2 class="ld-h2" id="ldAiTitle">AI 機能について</h2>
+      <p class="ld-lead">AI は、使っても使わなくても構いません（使わなくても、ノートとプリントの機能は、すべて使えます）。使うときは、次の3つから選べます。メニューの「AI アシスタント」で設定します。このアプリ自体は無料で、運営が料金をいただくことはありません。</p>
+      <div class="ld-ais">
+        <div class="ld-aic"><b>Google Gemini</b><i class="ld-tag">スマホ・パソコン</i><span>インストール不要。ご自身の API キー（無料枠あり）を登録して使います。教材（PDF・PowerPoint・音声など）からのノート作り、考査対策のプリント作り、図解の作成に使えます。<em>無料枠では、送った内容が Google の改善に使われることがあります。個人情報・機密は送らないでください。</em></span></div>
+        <div class="ld-aic"><b>Ollama（このパソコンの中で動かす）</b><i class="ld-tag">パソコン</i><span>パソコンに Ollama をインストールして使います。画面の案内に従って進めれば設定できます。内容がこのパソコンの外へ出ず、回数の制限もありません。速さは、パソコンの性能しだいです。</span></div>
+        <div class="ld-aic"><b>このブラウザの中で動かす（自作 AI・実験版）</b><i class="ld-tag">パソコン・準備中</i><span><strong class="ld-soon">いまは準備中です。</strong>使えるようになりしだい、ここからお使いいただけます。インストール不要。製作者が自作した小さな AI（図解専用）を、ブラウザの中だけで動かします。最初に約 500MB を読み込み（1 回だけ）、そのあとは、無料・回数の制限なしで、内容も外へ出ません。<em>製作者が自作した AI です。ちゃんとデータ（図にしたい内容の文章）を入れないと、笑えないほどの出来になります。ちゃんとデータを入れることをお勧めします。</em></span></div>
+      </div>
+      <ul class="ld-ai-pts">
+        <li>AI で作れるのは、「図解」「教材からのノート」「考査対策のプリント」です（自作 AI は図解だけ）。</li>
+        <li>ノートや教材の内容を AI に渡すのは、あなたが「作る」を押したときだけです。</li>
+        <li>AI が作った内容には、誤りが含まれることがあります。保存・印刷の前に、必ず確認してください。</li>
+      </ul>
+    </section>
+
     <h2 class="ld-q">さっそく、使ってみましょう。どちらで使いますか？</h2>
     <div class="ld-choose">
       <button type="button" class="ld-card" data-ld="pc">
@@ -179,12 +195,13 @@
         <b>スマホ版</b><span>1画面ずつ、下のバーで切り替えながら、片手で使えます。</span><i class="ld-rec" hidden>この端末におすすめ</i>
       </button>
     </div>
-    <p class="ld-note">どちらかを選ぶと、Google のログイン画面が開きます。あとから「メニュー」の設定で、いつでも切り替えられます。</p>
+    <p class="ld-note">どちらかを選ぶと、Google のログイン画面が開き、そのあと、ニックネームを決めます。あとから「メニュー」の設定で、いつでも切り替えられます。</p>
     <div class="ld-msg" id="ldMsg2" role="alert" hidden></div>
     <div class="ld-privacy">
-      <b>運営（このアプリの作者）に見えるもの：</b>ログインしたアカウントの一覧（メールアドレス・名前）だけです。<br>
+      <b>運営（このアプリの作者）に見えるもの：</b>ログインのときに決めた<b>ニックネーム</b>と、登録日・最後に使った日だけです。<b>Google アカウント（メールアドレス・名前）は、運営には届かず、見えません。</b><br>
       <b>運営に見えないもの：</b>ノートの中身。ノートは<b>あなた自身の Google ドライブ</b>に保存され、運営は読めません。<br>
-      このアプリが使う権限は「このアプリが作ったファイルだけ」で、ドライブの他のファイルには触れません。
+      運営が利用者にできるのは、不正な使い方があったときの<b>利用停止</b>だけです。このアプリが使う権限は「このアプリが作ったファイルだけ」で、ドライブの他のファイルには触れません。この許可は、Google アカウントの設定から、いつでも取り消せます。<br>
+      <b>ニックネームについて：</b>製作者と知り合いの方は、製作者が「あの人だ」と分かるニックネームにしてください。フィードバックを、直接お聞きしに行きやすくなります。知り合いでない方は、好きな名前で構いません（本名・メールアドレスは書かないでください）。
     </div>
     <p class="ld-guest"><button type="button" class="ld-link" data-ld="guest">ログインせずに使う</button><span>（ノートは、この端末のブラウザの中だけに保存されます）</span></p>
   </div>
@@ -201,17 +218,22 @@
 <style id="page-style"></style>
 <script src="js/storage.js"></script>
 <script src="js/svg.js"></script>
+<script src="js/diagram-styles.js"></script>
+<script src="js/diagram.js"></script>
 <script src="js/markdown.js"></script>
 <script src="vendor/editor/cm.js"></script>
 <script src="js/editor.js"></script>
 <script src="js/materials.js"></script>
 <script src="js/sheets.js"></script>
+<script src="js/chunks.js"></script>
 <script src="js/webai.js"></script>
 <script src="js/ai.js"></script>
 <script src="js/desktop.js"></script>
 <script src="js/feedback.js"></script>
 <script src="js/display.js"></script>
 <script src="js/mobile.js"></script>
+<script src="js/fbconfig.js"></script>
+<script src="js/roster.js"></script>
 <script src="js/cloud.js"></script>
 <script src="js/landing.js"></script>
 <script src="js/app.js"></script>

@@ -254,13 +254,31 @@
     };
   }
 
+  // 決まった選択肢だけを許す項目（HTML の属性やクラス名に入るため、壊れた値・悪意のある値を、そのまま入れない）
+  const OPT_ENUM = { type: Object.keys(TYPE_LABEL), filter: ['all', 'star2', 'star3', 'review'], answerMode: ['blank', 'key', 'filled'], termMode: ['hide-def', 'hide-term'], fontSize: ['s', 'm', 'l'], cols: [1, 2], paper: Object.keys(PAPER), pageBreak: ['none', 'subject', 'unit'] };
+  const OPT_BOOL = ['includeSummary', 'includeNotes', 'appendGlossary', 'clozeExcerpt', 'shuffle', 'showName'];
+
+  /** 印刷の設定を検査して、決まった選択肢以外は初期値に戻す（正しい設定は、そのまま） */
+  function cleanOpts(o) {
+    const d = defaultOpts(), src = o && typeof o === 'object' ? o : {}, r = {};
+    const own = (k) => Object.prototype.hasOwnProperty.call(src, k);
+    for (const k of Object.keys(d)) r[k] = own(k) && src[k] !== undefined ? src[k] : d[k];
+    for (const k of Object.keys(OPT_ENUM)) if (!OPT_ENUM[k].includes(r[k])) r[k] = d[k];
+    OPT_BOOL.forEach((k) => { r[k] = !!r[k]; });
+    if (!(typeof r.seed === 'number' && isFinite(r.seed))) r.seed = d.seed;
+    if (typeof r.title !== 'string') r.title = d.title;
+    if (r.customId !== null && typeof r.customId !== 'string') r.customId = null;
+    if (own('keys') && Array.isArray(src.keys)) r.keys = src.keys;
+    return r;
+  }
+
   function defaultTitle(o, examName) {
     return (examName ? examName + ' ' : '') + TYPE_LABEL[o.type];
   }
 
   /** 考査対策プリント全体（HTML）を組み立てる */
   function build(state, o, examName) {
-    o = Object.assign(defaultOpts(), o);
+    o = cleanOpts(o);
     const groups = resolveRange(state, o.keys, o.filter);
     const body = o.type === 'custom' ? bodyCustom(state, o) : buildBody(groups, o);
     const cls = ['sheet', 'fs-' + o.fontSize, 'cols-' + o.cols, 'pb-' + o.pageBreak, 't-' + o.type];
@@ -300,5 +318,5 @@
     return { html };
   }
 
-  LN.sheets = { NONE, PAPER, TYPE_LABEL, resolveRange, unitData, draftSummary, build, buildNote, defaultOpts, defaultTitle, notesOf, splitAnswers, rangeContext };
+  LN.sheets = { NONE, PAPER, TYPE_LABEL, resolveRange, unitData, draftSummary, build, buildNote, defaultOpts, cleanOpts, defaultTitle, notesOf, splitAnswers, rangeContext };
 })(window);

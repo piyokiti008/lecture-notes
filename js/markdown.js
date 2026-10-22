@@ -109,14 +109,36 @@
   function imgHtml(alt, src) {
     if (src.startsWith('img:')) {
       const data = (LN.images || {})[src.slice(4)];
-      return data ? '<img src="' + data + '" alt="' + esc(alt) + '">' : '<span class="img-missing">［画像が見つかりません］</span>';
+      return data ? '<img src="' + esc(data) + '" alt="' + esc(alt) + '">' : '<span class="img-missing">［画像が見つかりません］</span>';
     }
-    if (/^https?:\/\//.test(src)) return '<img src="' + esc(src) + '" alt="' + esc(alt) + '">';
+    // 外部サイトの画像は、読み込まない（開いただけで相手のサーバーに訪問が伝わる「追跡用の画像」を防ぐ。CSP でも止まるが、ここでも出さない）
+    if (/^https?:\/\//.test(src)) return '<span class="img-missing">［外部サイトの画像は、安全のため表示しません］</span>';
     return esc('![' + alt + '](' + src + ')');
   }
 
+  /** 極端に長い1行・1段落は、区切って処理する。記号の対応を探す正規表現は、文章が長いほど、長さの2乗で遅くなるため
+   *  （閉じていない [ や ** を6万文字並べると数秒かかり、画面が固まる）。区切りは空白・改行の位置。区切りをまたぐ記号は、効かなくなる（普通の文章では起きない長さ） */
+  const INLINE_MAX = 4000;
+  const QUOTE_MAX_DEPTH = 12; // 引用（>）の入れ子の上限。数千段の入れ子で画面が止まるのを防ぐ（超えた分は、ふつうの文字として表示）
+  /** 長い文字列を、INLINE_MAX 以下ずつに区切る（区切りは空白・改行の位置） */
+  function splitLong(text) {
+    const parts = [];
+    let i = 0;
+    while (i < text.length) {
+      let j = Math.min(text.length, i + INLINE_MAX);
+      if (j < text.length) { const cut = Math.max(text.lastIndexOf(' ', j), text.lastIndexOf('\n', j)); if (cut > i + INLINE_MAX / 2) j = cut + 1; }
+      parts.push(text.slice(i, j));
+      i = j;
+    }
+    return parts;
+  }
   function inline(text, ctx) {
     ctx = ctx || { answers: [] };
+    text = String(text);
+    if (text.length <= INLINE_MAX) return inlineOne(text, ctx);
+    return splitLong(text).map((t) => inlineOne(t, ctx)).join('');
+  }
+  function inlineOne(text, ctx) {
     const stash = [];
     const put = (h) => '\u0000' + (stash.push(h) - 1) + '\u0001';
     const restore = (s) => {
@@ -257,10 +279,10 @@
         push('table', html, ctx.answers, { rows: [head].concat(rows) });
         continue;
       }
-      if (/^\s*>/.test(line)) {
+      if (/^\s*>/.test(line) && (opts.qd || 0) < QUOTE_MAX_DEPTH) {
         const buf = [];
         while (i < lines.length && /^\s*>/.test(lines[i])) buf.push(lines[i++].replace(/^\s*>\s?/, ''));
-        const inner = blocks(buf.join('\n'), opts);
+        const inner = blocks(buf.join('\n'), Object.assign({}, opts, { qd: (opts.qd || 0) + 1 }));
         push('quote', '<blockquote>' + inner.map((b) => b.html).join('\n') + '</blockquote>', [].concat(...inner.map((b) => b.answers)), { inner });
         continue;
       }
@@ -322,7 +344,11 @@
     const seen = new Set();
     const addHL = (text) => {
       text = text.trim();
-      if (text && HL.test(text) && !seen.has(text)) { seen.add(text); out.highlights.push({ text, heading }); }
+      if (!text) return;
+      for (const part of text.length > INLINE_MAX ? splitLong(text) : [text]) { // 長すぎる行は区切って調べる（閉じていない == を大量に並べられても、固まらないように）
+        const t = part.trim();
+        if (t && HL.test(t) && !seen.has(t)) { seen.add(t); out.highlights.push({ text: t, heading }); }
+      }
     };
     (function walk(bs) {
       for (const b of bs) {
@@ -348,5 +374,5 @@
   }
 
   // RE：行の種類を見分ける正規表現（js/editor.js が、書いている最中の見た目を、プレビューと同じ規則で決めるために使う）
-  LN.md = { esc, inline, blocks, render, extract, mathHtml, RE: { HEAD: RE_HEAD, LIST: RE_LIST, Q: RE_Q, A: RE_A, TERM: RE_TERM, HR: RE_HR } };
+  LN.md = { esc, inline, INLINE_MAX, blocks, render, extract, mathHtml, RE: { HEAD: RE_HEAD, LIST: RE_LIST, Q: RE_Q, A: RE_A, TERM: RE_TERM, HR: RE_HR } };
 })(typeof window !== 'undefined' ? window : globalThis);

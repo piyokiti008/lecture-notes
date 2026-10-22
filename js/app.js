@@ -52,6 +52,30 @@
     LN.save();
   }
 
+  /* ---------- しまえる部分（パソコン用）：周りの欄を、ワンクリックでしまって、書く場所・プリントを広く使う ----------
+     ボタンは各欄の中、しまった欄は細い帯（ここを押すと戻る）。しまった状態は、この端末のブラウザに覚える（ノートの内容とは別。スマホ用では何もしない） */
+  const FOLD_KEY = 'ln.fold';
+  const FOLD_PARTS = { side: '切り替えと一覧', list: 'ノート一覧', head: 'タイトル欄', range: '範囲の選択', opt: 'プリントの設定' };
+  const fold = (() => {
+    const out = {};
+    try { const j = JSON.parse(window.localStorage.getItem(FOLD_KEY)) || {}; for (const k in FOLD_PARTS) out[k] = j[k] === true; } catch (e) { for (const k in FOLD_PARTS) out[k] = false; }
+    return out;
+  })();
+  const foldBtn = (k) => '<button type="button" class="fold-btn" data-act="fold" data-fold="' + k + '" aria-expanded="' + !fold[k] + '" title="' + (fold[k] ? 'ひらく' : 'しまう') + '：' + FOLD_PARTS[k] + '" aria-label="' + FOLD_PARTS[k] + (fold[k] ? 'をひらく' : 'をしまう') + '">' + ICON.chev + '</button>';
+  const foldStrip = (k) => '<div class="fold-strip" data-act="fold" data-fold="' + k + '">' + foldBtn(k) + '<span class="fold-lbl">' + FOLD_PARTS[k] + '</span></div>';
+  function applyFold() {
+    const app = $('#app');
+    for (const k in FOLD_PARTS) {
+      if (app) app.classList.toggle('fold-' + k, !!fold[k]);
+      $$('.fold-btn[data-fold="' + k + '"]').forEach((b) => {
+        b.setAttribute('aria-expanded', String(!fold[k]));
+        b.title = (fold[k] ? 'ひらく' : 'しまう') + '：' + FOLD_PARTS[k];
+        b.setAttribute('aria-label', FOLD_PARTS[k] + (fold[k] ? 'をひらく' : 'をしまう'));
+      });
+    }
+  }
+  function saveFold() { try { window.localStorage.setItem(FOLD_KEY, JSON.stringify(fold)); } catch (e) { /* 保存できなくても、この回は反映される */ } }
+
   function ensureSelection() {
     const s = st();
     if (!curSubject()) ui.subjectId = (s.subjects.slice().sort(byOrder)[0] || {}).id || null;
@@ -155,6 +179,7 @@
     ensureSelection();
     renderSidebar();
     if (ui.view === 'notes') renderNotes(); else renderExam();
+    applyFold();
     if (LN.mobile) LN.mobile.sync();
   }
 
@@ -174,9 +199,12 @@
         '<li class="side-item' + (x.id === ui.examId ? ' on' : '') + '" data-act="exam-select" data-id="' + x.id + '" title="' + esc(x.name) + '"><span class="dot" style="background:var(--accent)"></span><span class="nm">' + esc(x.name) + '</span>' + daysPill(x) + '</li>').join('');
     }
     $('#sidebar').innerHTML =
-      '<div class="brand"><span class="brand-logo">' + ICON.book + '</span>講義ノート</div>' +
+      '<div class="brand"><span class="brand-logo">' + ICON.book + '</span>講義ノート' + foldBtn('side') + '</div>' +
       '<nav class="nav"><button class="nav-btn' + (inNotes ? ' on' : '') + '" data-act="nav" data-view="notes">' + ICON.book + 'ノート</button>' +
       '<button class="nav-btn' + (!inNotes ? ' on' : '') + '" data-act="nav" data-view="exam">' + ICON.exam + '考査対策</button></nav>' +
+      '<div class="side-rail">' + foldBtn('side') + '<button class="nav-btn' + (inNotes ? ' on' : '') + '" data-act="nav" data-view="notes" title="ノート" aria-label="ノート">' + ICON.book + '</button>' +
+      '<button class="nav-btn' + (!inNotes ? ' on' : '') + '" data-act="nav" data-view="exam" title="考査対策" aria-label="考査対策">' + ICON.exam + '</button>' +
+      '<button class="nav-btn rail-menu" data-act="m-menu" title="メニュー" aria-label="メニュー">' + ICON.menu + '</button></div>' +
       '<div class="side-head"><span>' + head + '</span><button class="icon-btn" data-act="' + (inNotes ? 'subject-add' : 'exam-new') + '" title="' + head + 'を追加">' + ICON.plus + '</button></div>' +
       '<ul class="side-list">' + (list || '<li class="empty-note">' + (inNotes ? '教科がまだありません' : '考査がまだありません') + '</li>') + '</ul>' +
       '<div class="side-foot">' + (LN.cloud ? LN.cloud.chipHtml() : '') +
@@ -197,7 +225,7 @@
     if (!st().subjects.length) { main.innerHTML = welcomeHtml(); return; }
     const sub = curSubject();
     main.innerHTML =
-      '<section class="list-col"><div class="list-head"><div class="m-bar"><button type="button" class="m-back" data-act="m-back">‹ 教科</button></div><div class="list-title"><span class="dot" style="background:' + sub.color + '"></span><h2>' + esc(sub.name) + '</h2></div>' +
+      '<section class="list-col">' + foldStrip('list') + '<div class="list-head"><div class="m-bar"><button type="button" class="m-back" data-act="m-back">‹ 教科</button></div><div class="list-title"><span class="dot" style="background:' + sub.color + '"></span><h2>' + esc(sub.name) + '</h2>' + foldBtn('list') + '</div>' +
       '<div style="display:flex;gap:8px"><button class="btn primary" style="flex:1;justify-content:center" data-act="note-new">' + ICON.plus + '新しいノート</button>' +
       '<button class="btn" data-act="unit-add" title="単元を追加">' + ICON.plus + '単元</button></div>' +
       '<input type="search" id="search" placeholder="この教科のノートを検索…" value="' + esc(ui.search) + '"></div><div class="list-body" id="listBody"></div></section>' +
@@ -260,7 +288,7 @@
     const units = unitsOf(n.subjectId);
     const unitOpts = '<option value="">未分類</option>' + units.map((u) => '<option value="' + u.id + '"' + (u.id === n.unitId ? ' selected' : '') + '>' + esc(u.name) + '</option>').join('') + '<option value="__new">＋ 新しい単元を作る…</option>';
     col.innerHTML =
-      '<div class="ed-head"><div class="m-bar"><button type="button" class="m-back" data-act="m-back">‹ 一覧</button><span class="grow"></span>' + modeSegHtml([['edit', '編集'], ['view', '表示']], 'm-seg') + '</div><input class="title-input" id="fTitle" type="text" placeholder="タイトル（例：第3回 光合成のしくみ）" value="' + esc(n.title) + '" autocomplete="off">' +
+      '<div class="ed-head">' + foldBtn('head') + '<div class="m-bar"><button type="button" class="m-back" data-act="m-back">‹ 一覧</button><span class="grow"></span>' + modeSegHtml([['edit', '編集'], ['view', '表示']], 'm-seg') + '</div><input class="title-input" id="fTitle" type="text" placeholder="タイトル（例：第3回 光合成のしくみ）" value="' + esc(n.title) + '" autocomplete="off">' +
       '<div class="ed-meta"><label class="fld">日付<input type="date" id="fDate" value="' + esc(n.date || '') + '"></label>' +
       '<label class="fld">単元<select id="fUnit">' + unitOpts + '</select></label>' +
       '<span class="fld">重要度<span class="starbtn" id="fStars">' + [1, 2, 3].map((i) => '<button data-act="star" data-n="' + i + '" class="' + (n.star >= i ? 'on' : '') + '" title="重要度 ' + i + '">★</button>').join('') + '</span></span>' +
@@ -479,8 +507,8 @@
       body += '<div class="r-subject"><label><input type="checkbox" data-sall="' + s.id + '"><span class="dot" style="background:' + s.color + '"></span>' + esc(s.name) + '</label>' +
         rows.map((r) => '<label class="r-unit"><input type="checkbox" data-key="' + r[0] + '"' + (keys.has(r[0]) ? ' checked' : '') + '><span class="nm">' + esc(r[1]) + '</span><span class="cnt">' + r[2] + '件</span></label>').join('') + '</div>';
     }
-    col.innerHTML =
-      '<div class="range-head"><div class="m-bar"><button type="button" class="m-back" data-act="m-back">‹ 考査</button><span class="grow"></span><button type="button" class="btn primary sm" data-act="m-next">まとめ・プリントへ ›</button></div><h2><span>' + esc(exam.name) + '</span><button class="icon-btn" data-act="exam-edit" title="名前・日付を編集">' + ICON.edit + '</button></h2>' +
+    col.innerHTML = foldStrip('range') +
+      '<div class="range-head"><div class="m-bar"><button type="button" class="m-back" data-act="m-back">‹ 考査</button><span class="grow"></span><button type="button" class="btn primary sm" data-act="m-next">まとめ・プリントへ ›</button></div><h2><span>' + esc(exam.name) + '</span><button class="icon-btn" data-act="exam-edit" title="名前・日付を編集">' + ICON.edit + '</button>' + foldBtn('range') + '</h2>' +
       '<div class="meta">' + (exam.date ? fmtDate(exam.date) + ' ' + daysPill(exam) : '日付は未設定') + '</div></div>' +
       '<div class="range-body"><div class="range-tools"><b style="color:var(--text-2)">範囲（単元）</b><span class="grow"></span>' +
       '<button class="btn sm ghost" data-act="range-all">全選択</button><button class="btn sm ghost" data-act="range-none">全解除</button></div>' +
@@ -585,7 +613,8 @@
         '<div class="opt-group"><div class="lbl">解答</div>' + ans + '</div><div class="opt-group"><div class="lbl">出題</div><div class="stack">' + chk('shuffle', '単元内で順番をシャッフル', o.shuffle) +
         (o.shuffle ? '<button class="btn sm" data-act="reshuffle">並べ替え直す</button>' : '') + '</div></div>';
     }
-    body.innerHTML = '<div class="print-wrap"><div class="opt-col">' +
+    body.innerHTML = '<div class="print-wrap"><div class="opt-col">' + foldStrip('opt') +
+      '<div class="opt-bar"><b>プリントの設定</b>' + foldBtn('opt') + '</div>' +
       '<div class="opt-group"><div class="lbl">プリントの種類</div><div class="type-grid">' + T.map((t) => '<button class="type-btn' + (o.type === t[0] ? ' on' : '') + '" data-act="opt" data-opt="type" data-val="' + t[0] + '">' + t[1] + '<small>' + t[2] + '</small></button>').join('') + '</div></div>' +
       (o.type === 'custom' ? '' : '<div class="opt-group"><div class="lbl">タイトル</div><input type="text" data-opt="title" placeholder="' + esc(sh.defaultTitle(o, exam.name)) + '" value="' + esc(o.title) + '"></div>') +
       typeOpts +
@@ -659,6 +688,7 @@
       ui.view = 'notes'; ui.subjectId = s.id; ui.noteId = null; ui.search = '';
       mgo('mid'); persistUi(); render();
     },
+    fold(el) { const k = el.dataset.fold; if (!(k in FOLD_PARTS)) return; fold[k] = !fold[k]; saveFold(); applyFold(); },
     'subject-select'(el) { ui.subjectId = el.dataset.id; ui.noteId = null; ui.search = ''; mgo('mid'); persistUi(); render(); },
     async 'subject-edit'(el) {
       const s = subj(el.dataset.id);
@@ -993,10 +1023,11 @@
 
   function afterLoad() {
     const s = st();
-    s.settings.sheet = Object.assign(sh.defaultOpts(), s.settings.sheet);
+    s.settings.sheet = sh.cleanOpts(s.settings.sheet);
     delete s.settings.sheet.keys;
     const u = s.settings.ui || {};
-    ui.view = u.view || 'notes'; ui.subjectId = u.subjectId || null; ui.noteId = u.noteId || null; ui.examId = u.examId || null; ui.examTab = u.examTab || 'summary';
+    const idOr = (v) => (typeof v === 'string' && /^[A-Za-z0-9_-]{1,64}$/.test(v) ? v : null); // 保存済みの「開いていた場所」も、決まった形のものだけ使う
+    ui.view = u.view === 'exam' ? 'exam' : 'notes'; ui.subjectId = idOr(u.subjectId); ui.noteId = idOr(u.noteId); ui.examId = idOr(u.examId); ui.examTab = u.examTab === 'print' ? 'print' : 'summary';
   }
 
   // AI・デスクトップ機能（ai.js / desktop.js）から使う内部 API

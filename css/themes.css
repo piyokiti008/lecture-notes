@@ -187,6 +187,10 @@
 :root[data-round="s"] { --radius: 5px; }
 :root[data-round="l"] { --radius: 18px; }
 
+/* ===== ノートの本文のフォント（書く欄・プレビュー・印刷プリント）。js/theme.js が、選ばれた書体を、:root の --font-note に入れる。
+   標準のときは入れない（var() の代わりの値＝これまでの見た目が使われる。プリントの用紙は css/sheet.css の .sheet が同じ形で受ける） ===== */
+.ln-ed .cm-editor, .ed-body textarea, .preview { font-family: var(--font-note, var(--font)); }
+
 /* ===== 文字の大きさ（ノートの本文とプレビュー） ===== */
 :root { --fs-note: 15px; }
 :root[data-size="s"] { --fs-note: 13.5px; }

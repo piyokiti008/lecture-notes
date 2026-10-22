@@ -66,7 +66,7 @@
 
 /* ---------- プリント用紙 ---------- */
 .sheet { --md-accent: #1f3fb0; --md-line: #bbb; --md-soft: #f3f3f0; --md-sub: #444; --mark: #ffe680;
-  color: #111; background: #fff; font-family: "Yu Gothic", "Yu Gothic UI", "Meiryo", "Hiragino Sans", "Noto Sans JP", sans-serif;
+  color: #111; background: #fff; font-family: var(--font-note, "Yu Gothic", "Yu Gothic UI", "Meiryo", "Hiragino Sans", "Noto Sans JP", sans-serif); /* --font-note：設定で選んだ書体（標準のときは、未設定＝この代わりの値） */
   counter-reset: cz; }
 .sheet.fs-s { font-size: 9.5pt; }
 .sheet.fs-m { font-size: 11pt; }

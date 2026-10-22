@@ -61,10 +61,22 @@
 
   const LEVELS = { short: '簡潔に。全体で 600〜1200 字を目安に、要点だけをまとめる。', normal: '標準の詳しさで。全体で 1500〜3000 字を目安にする。', long: '詳しく。全体で 3000〜6000 字を目安に、理由や例も含める。' };
 
-  const SYS_DIAGRAM = [
-    'あなたは、大学の学習用の図解（SVG）を作るデザイナーです。学生の依頼と、参考文章の内容だけに基づいて図を作ります。文章に無い事実は足しません。',
-    '出力は <svg ...> から </svg> までの SVG コードだけです。説明文・前置き・コードフェンスは付けません。',
-    SVG_RULES,
+  /* 長い教材を「区切って」まとめる（Ollama のとき）。1 回で渡すと、読み込みだけで何分も何も出ず、固まって見えるため。
+     教材の文字を約 1200 字ずつに区切り（js/chunks.js）、1 区切りずつ、決まった形（JSON）で要点にしてもらい、ノートの形には、プログラムで組み立てる。 */
+  const CHUNK_MODE_CHARS = 2500; // 教材の文字がこれを超えたら、区切って作る（これ以下は、1 回で作る）
+  const CHUNK_LEVEL = { short: { pts: '2〜3 行', max: 500, expect: 300 }, normal: { pts: '3〜5 行', max: 800, expect: 450 }, long: { pts: '5〜8 行（理由や例も含める）', max: 1200, expect: 700 } };
+  const SYS_CHUNK = [
+    'あなたは、大学の講義内容を整理し、学生が考査（試験）勉強に使えるノートを作る学習アシスタントです。',
+    'いま、長い教材を区切って、1 区切りずつ、要点にまとめています。渡された【教材の一部】だけを材料にして、次の項目を作ってください。',
+    '- heading：この部分の小見出し（20 字以内）',
+    '- points：要点の箇条書き。大事な語句・結論は ==語句== で囲む。専門用語・固有名詞・数値・式は、教材のとおりに書く。',
+    '- terms：この部分に出てくる重要な用語と、短い説明（無ければ空の配列）',
+    '- qa：この部分から作る確認問題と答え（1 組。作れなければ空の配列）',
+    '【守ること】教材に書かれていないことは付け足さない。読み取れない・自信のない箇所は推測せず「（要確認）」と書く。日本語で書く（英語の用語は「日本語（English）」の形で併記）。',
+  ].join('\n');
+  const SYS_OVERVIEW = [
+    'あなたは、大学の講義内容を整理する学習アシスタントです。次は、ある教材の、各部分の見出しと最初の要点の一覧です。',
+    '一覧だけを材料にして、教材全体の「title」（30 字以内）と、全体の概要「overview」（3〜5 行の短い箇条書き）を作ってください。一覧にないことは書かない。日本語で書く。',
   ].join('\n');
 
   const SYS_SHEET = [
@@ -91,9 +103,10 @@
     ollama: { label: 'このPCで動かす（Ollama）', tag: '無料・オフライン', desc: (WEB ? 'パソコン向き。最初に1回だけ、案内つきの設定をします。' : '') + '内容が PC の外に出ません。性能はこの PC 次第です（3〜7GB ほどの AI をダウンロードします）。' },
     anthropic: { label: 'Anthropic Claude', tag: '有料', desc: '最高品質。使った分だけ、ご自身のキーに課金されます。' },
     openai: { label: 'その他（OpenAI 互換）', tag: '接続先による', desc: 'Groq（無料枠あり）・OpenRouter・LM Studio など。' },
+    browser: { label: 'このブラウザの中で動かす', tag: '無料・オフライン・実験', desc: 'インストール不要。AI（約 500MB）を、このブラウザに 1 回だけ読み込み、あとはブラウザの中だけで動かします。内容は外へ出ません。パソコンの GPU（WebGPU）が必要です。いまは図解向けの実験版です。' },
   };
   const PRESETS = { groq: ['Groq（無料枠あり）', 'https://api.groq.com/openai/v1'], openrouter: ['OpenRouter', 'https://openrouter.ai/api/v1'], lmstudio: ['LM Studio（この PC）', 'http://127.0.0.1:1234/v1'], custom: ['その他', ''] };
-  const PROV_IDS = () => (WEB ? ['gemini', 'ollama'] : Object.keys(PROV)); // ブラウザ版で使える AI（通信先を限っているため）
+  const PROV_IDS = () => (WEB ? ['gemini', 'ollama', 'browser'] : Object.keys(PROV).filter((p) => p !== 'browser')); // ブラウザ版で使える AI（通信先を限っているため）。「ブラウザの中」は、ブラウザ版だけ
   const recommended = () => (LN.theme && LN.theme.isPhone() ? 'gemini' : 'ollama'); // スマホは Gemini（インストール不要）、パソコンは Ollama
   const KEY_LINK = { gemini: 'https://aistudio.google.com/apikey', anthropic: 'https://console.anthropic.com/settings/keys', groq: 'https://console.groq.com/keys', openrouter: 'https://openrouter.ai/keys' };
   /** 使っている OS（Ollama の接続の案内を、OS ごとに出し分ける） */
@@ -118,10 +131,11 @@
     const d = {
       provider: '', consent: {}, anthropic: { model: 'claude-opus-5' }, gemini: { model: '' },
       ollama: { baseUrl: 'http://127.0.0.1:11434', model: '', vision: false, numCtx: 16384 }, openai: { preset: 'groq', baseUrl: PRESETS.groq[1], model: '', vision: false },
+      browser: { model: 'ln-tuned/qwen3.5-0.8b-diagram', prompt: 'long' }, // 既定は、図解用に学習した 0.8B。prompt：図解の指示文。long＝学習なしの AI 向け（長い）／short＝学習した AI 向け（短い。学習データと同じ形）。学習した AI（ln-tuned/…）を選んでいれば、prompt に関わらず short
     };
     const old = cur.model && !cur.anthropic; // 旧形式（Claude 専用）からの移行
     const out = Object.assign({}, d, cur);
-    for (const p of ['anthropic', 'gemini', 'ollama', 'openai']) out[p] = Object.assign({}, d[p], cur[p]);
+    for (const p of ['anthropic', 'gemini', 'ollama', 'openai', 'browser']) out[p] = Object.assign({}, d[p], cur[p]);
     if (old) { out.anthropic.model = cur.model; out.consent = cur.consent === true ? { anthropic: true } : {}; }
     if (typeof out.consent !== 'object' || out.consent === null) out.consent = {};
     delete out.model;
@@ -135,6 +149,7 @@
       case 'gemini': return !!(k.gemini && c.gemini.model);
       case 'anthropic': return !!k.anthropic;
       case 'ollama': return !!c.ollama.model;
+      case 'browser': return !!c.browser.model && WEB;
       case 'openai': return !!(c.openai.baseUrl && c.openai.model);
       default: return false;
     }
@@ -144,23 +159,88 @@
   /* ---------- 実行（メインプロセスへの橋渡し） ---------- */
   let seq = 0;
 
+  /* ---------- かかる時間の見積もりと、待っている間の表示 ----------
+   * Ollama（この PC の AI）は、文章を「読み込む」時間が、文字数にほぼ比例する（実測：この PC の 2B で 1000 トークンあたり約 13 秒、4B で約 15 秒。
+   * 書き出しは、2B で毎秒約 17 トークン、4B で約 9 トークン）。長い教材を 1 回で渡すと、読み込みだけで数分かかり、その間、何も出ないので、固まったように見える。
+   * そこで、① 送る前に、かかる時間を見積もる（読み込みだけで 90 秒を超えそうなら、続けるか確認する）
+   *       ② 待っている間、経過と見込みを出す　③ 見込みを大きく超えたら、「中止できる」ことを案内する。
+   * 速さは、Ollama が返す実測値（webai.js の stats）から、モデルごとに覚える（直近 5 回の中央値）。分からないうちは、遅めの既定値（4B 相当）で見積もる。
+   * 見積もりは、Ollama のときだけ（Gemini など、クラウドの AI は速いので、出さない）。 */
+  const SPEED_KEY = 'ln.ollamaSpeed';
+  const TOK_PER_CHAR = 0.65;                 // 日本語は、1 文字あたり約 0.62 トークン（実測）
+  const SPEED_DEFAULT = { p: 60, d: 8 };     // 読み込み・書き出しの速さ（トークン/秒）。実測：2B＝76/17、4B＝65/9（この PC）
+  const CONFIRM_SEC = 90;                    // 読み込みだけで、これを超える見込みなら、送る前に確認する
+  const store = () => { try { return JSON.parse(root.localStorage.getItem(SPEED_KEY) || '{}') || {}; } catch (e) { return {}; } };
+  const median = (a) => { const s = (a || []).slice().sort((x, y) => x - y); return s.length ? s[Math.floor(s.length / 2)] : 0; };
+  const speedOf = (model) => { const m = store()[model] || {}; return { p: median(m.p) || SPEED_DEFAULT.p, d: median(m.d) || SPEED_DEFAULT.d }; };
+  function learnSpeed(model, st) {
+    try {
+      const all = store(), m = (all[model] = all[model] || { p: [], d: [] });
+      if (st.pTok >= 200 && st.pSec > 0.5) m.p = (m.p || []).concat(Math.min(5000, st.pTok / st.pSec)).slice(-5);
+      if (st.oTok >= 30 && st.oSec > 0.5) m.d = (m.d || []).concat(Math.min(500, st.oTok / st.oSec)).slice(-5);
+      root.localStorage.setItem(SPEED_KEY, JSON.stringify(all));
+    } catch (e) { /* 保存できなくても、見積もりが既定値になるだけ */ }
+  }
+  const fmtSec = (s) => (s < 90 ? '約' + Math.max(1, Math.round(s / 5) * 5) + '秒' : '約' + Math.round(s / 60) + '分');
+  /** 依頼の大きさ（文字数・トークン）と、かかる時間の見込み（秒）。o は ai.run に渡すものと同じ形 */
+  ai.estimate = function (o, model) {
+    let chars = (o.system || '').length, images = 0;
+    for (const m of o.messages || []) {
+      if (typeof m.content === 'string') chars += m.content.length;
+      else for (const b of m.content || []) {
+        if (b.type === 'text') chars += (b.text || '').length;
+        else if (b.type === 'image') images++;
+        else if (b.type === 'document') chars += Math.round(((b.source && b.source.data || '').length * 0.75) / 25); // PDF の文字数は、おおよそ、サイズの 1/25
+      }
+    }
+    const tokensIn = Math.ceil(chars * TOK_PER_CHAR) + images * 1200, tokensOut = o.expectTokens || (o.schema ? 700 : 2000), sp = speedOf(model);
+    const secIn = tokensIn / sp.p, secOut = tokensOut / sp.d;
+    return { chars, tokensIn, tokensOut, secIn, secOut, sec: secIn + secOut, speed: sp };
+  };
+  ai._fmtSec = fmtSec; ai._tickMs = 4000; ai._slowAfter = (est) => Math.max(60, est.secIn * 1.6 + 15); // 試験用に、差し替えられる（待つ間隔・「遅い」と案内するまでの秒数）
+
   /** { done: Promise<{text, stopReason, usage}>, cancel() } */
   ai.run = function (o) {
     const id = 'r' + Date.now().toString(36) + '-' + ++seq;
     const c = cfg(), p = c.provider, pc = c[p] || {};
-    let off = () => {};
+    let off = () => {}, ticker = 0;
     const done = (async () => {
+      // ① Ollama で、読み込みに時間がかかりそうなら、送る前に確認する
+      const est = p === 'ollama' ? ai.estimate(o, pc.model) : null;
+      // （すでに「長すぎる」と断られる大きさ〔webai.js の判定と同じ式〕のときは、確認は出さない。断る理由が、そのまま案内になる）
+      const ctxMax = Math.min(Math.max(parseInt(pc.numCtx, 10) || 16384, 4096), 131072);
+      const tooBig = est && est.chars / 1.1 + Math.min(o.maxTokens || 32000, 8192) > ctxMax * 1.15;
+      if (est && !tooBig && est.secIn >= CONFIRM_SEC && U && U.ask) {
+        const go = await U.ask({
+          title: '時間がかかりそうです', ok: '続ける',
+          message: 'この内容は、約' + est.chars.toLocaleString() + '文字（約' + est.tokensIn.toLocaleString() + 'トークン）です。<br>このパソコンの AI（' + esc(pc.model) + '）は、文章を読み込むだけで<b>' + fmtSec(est.secIn) + '</b>、そのあと書き出しに' + fmtSec(est.secOut) + 'ほど、全体で<b>' + fmtSec(est.sec) + '</b>かかる見込みです。その間、結果は出ません（途中で中止はできます）。<br><br>速くするには：<br>・教材やノートの範囲を減らす（分けて、1 つずつ作る）<br>・設定で Gemini（無料）を選ぶ',
+        });
+        if (!go) { const e = new Error('やめました（AI には送っていません）'); e.kind = 'cancelled'; throw e; }
+      }
+      // ② 待っている間（最初の文字が出るまで）、経過と見込みを出す。③ 見込みを大きく超えたら、中止できると案内する
+      const t0 = Date.now();
+      const hint = () => {
+        const el = Math.round((Date.now() - t0) / 1000);
+        let h = '見込み：全体で' + fmtSec(est.sec) + '（経過 ' + el + ' 秒）';
+        if (el > ai._slowAfter(est)) h += '　※思ったより時間がかかっています。「中止」して、範囲を狭めるか、設定で Gemini（無料）を選ぶこともできます';
+        return h;
+      };
       off = D.onEvent((ev) => {
         if (ev.id !== id) return;
         if (ev.type === 'text' && o.onText) o.onText(ev.text);
-        else if (ev.type === 'status' && o.onStatus) o.onStatus(ev.status);
+        else if (ev.type === 'status' && o.onStatus) {
+          if (ev.status !== 'thinking' && ticker) { clearInterval(ticker); ticker = 0; }
+          o.onStatus(ev.status, ev.status === 'thinking' && est && est.sec >= 20 ? hint() : ev.hint);
+        }
         else if (ev.type === 'note' && o.onNote) o.onNote(ev.text);
+        else if (ev.type === 'stats' && p === 'ollama') learnSpeed(pc.model, ev);
       });
+      if (est && est.sec >= 20 && o.onStatus) ticker = setInterval(() => o.onStatus('thinking', hint()), ai._tickMs);
       try {
-        const r = await D.start(id, { provider: p, model: pc.model, system: o.system, messages: o.messages, maxTokens: o.maxTokens || 32000, config: { baseUrl: pc.baseUrl, vision: pc.vision, numCtx: pc.numCtx } });
+        const r = await D.start(id, { provider: p, model: pc.model, system: o.system, messages: o.messages, maxTokens: o.maxTokens || 32000, schema: o.schema, config: { baseUrl: pc.baseUrl, vision: pc.vision, numCtx: pc.numCtx } });
         if (r && r.error) { const e = new Error(r.error.message); e.kind = r.error.kind; throw e; }
         return r;
-      } finally { off(); }
+      } finally { off(); if (ticker) { clearInterval(ticker); ticker = 0; } }
     })();
     return { done, cancel: () => D.cancel(id) };
   };
@@ -169,7 +249,7 @@
   const $ = (s, r) => (r || document).querySelector(s);
   const esc = (s) => md().esc(s);
   const opt = (list, cur) => list.map((x) => '<option value="' + x[0] + '"' + (x[0] === cur ? ' selected' : '') + '>' + esc(x[1]) + '</option>').join('');
-  const statText = (s, thinking, writing) => (s === 'uploading' ? 'ファイルを AI に送信しています…（大きいほど時間がかかります）' : s === 'thinking' ? thinking : writing);
+  const statText = (s, thinking, writing, hint) => (s === 'uploading' ? 'ファイルを AI に送信しています…（大きいほど時間がかかります）' : s === 'loading' ? 'AI をこのブラウザに読み込んでいます…（最初の 1 回だけ。数十秒〜数分かかります）' + (hint ? '　' + hint : '') : s === 'thinking' ? thinking + (hint ? '　' + hint : '') : writing);
 
   async function refreshStatus() {
     if (!D) return;
@@ -185,14 +265,16 @@
     gemini: 'あなたが選んだ教材・ノート・依頼文が、<b>Google（Gemini）へ送信</b>されます。<br>・無料枠のため、料金はかかりません（回数の上限あり）。<br>・無料枠では、送信内容が Google の製品改善に使われたり、人が確認する場合があります。個人情報や機密は含めないでください。<br>・この内容が、このアプリの作者や他のユーザーに届くことはありません。<br>・AI の出力には誤りが含まれることがあります。必ず確認してください。',
     anthropic: 'あなたが選んだ教材・ノート・依頼文が、<b>Anthropic（api.anthropic.com）へ送信</b>されます。<br>・料金は、登録したあなた自身の API キーに課金されます。<br>・この内容が、このアプリの作者や他のユーザーに届くことはありません。<br>・AI の出力には誤りが含まれることがあります。必ず確認してください。',
     openai: 'あなたが選んだ教材・ノート・依頼文が、<b>設定した接続先へ送信</b>されます。接続先の利用条件（料金・データの扱い）をご確認ください。<br>AI の出力には誤りが含まれることがあります。必ず確認してください。',
+    browser: 'このブラウザの中で動く AI を使います。教材・ノート・依頼文は、<b>外部へ送信されません</b>。<br>AI のファイル（約 500MB）は、最初の 1 回だけ、インターネット（このアプリの配信元。公式の学習前のモデルを選んだときは Hugging Face）から読み込まれ、このブラウザに保存されます。<br>AI の出力には誤りが含まれることがあります。必ず内容を確認してください。',
   };
 
-  /** 設定が済んでいて、初回は送信内容の確認を出してから true を返す */
-  async function ensureReady() {
+  /** 設定が済んでいて、初回は送信内容の確認を出してから true を返す。feature：'diagram'（図解）のときだけ、「ブラウザの中で動かす AI」（実験版）を使える */
+  async function ensureReady(feature) {
     if (!D) { openSettings(); return false; }
     await refreshStatus();
     if (!ai.ready) { U.toast('先に AI の設定をしてください'); openSettings(); return false; }
     const c = cfg(), p = c.provider;
+    if (p === 'browser' && feature !== 'diagram') { U.toast('「ブラウザの中で動かす AI」は、いまは図解だけに対応しています。この機能は、設定で Gemini か Ollama を選んでください'); openSettings(); return false; }
     if (!c.consent[p]) {
       const ok = await U.ask({ title: 'AI に送信する内容の確認', ok: '同意して続ける', message: consentText[p] });
       if (!ok) return false;
@@ -242,7 +324,7 @@
     U.ask({
       title: 'AI アシスタントの設定', wide: true, hideOk: true, cancelText: '閉じる',
       body: '<div class="ai-note"><b>費用について：</b>このアプリ自体は無料で、作者が費用を負担する仕組み（共通のキーやサーバー）はありません。' +
-        '<b>「無料」の AI を選べば、利用料はかかりません。</b>' + (WEB ? 'API キーは、<b>このブラウザの中だけ</b>に保存されます（ドライブには同期されず、運営にも届きません）。AI への通信は、このブラウザから Google（Gemini）またはこのパソコンの Ollama へ直接行われます。' : 'キーもデータも、あなたの PC の中だけで管理されます。') + '</div>' +
+        '<b>「無料」の AI を選べば、利用料はかかりません。</b>' + (WEB ? 'API キーは、<b>このブラウザの中だけ</b>に保存されます（ドライブには同期されず、運営にも届きません）。AI への通信は、このブラウザから Google（Gemini）またはこのパソコンの Ollama へ直接行われます（「ブラウザの中で動かす」を選んだときは、AI のファイルを取得する通信〔このアプリの配信元、または Hugging Face〕だけです）。' : 'キーもデータも、あなたの PC の中だけで管理されます。') + '</div>' +
         '<div class="prov-grid" id="provGrid"></div><div id="provPanel"></div><div class="ai-status" id="aiSetStatus"></div>',
       onOpen(form) {
         const say = (t, bad, spin) => { const s = $('#aiSetStatus', form); s.innerHTML = (spin ? '<span class="ai-spin"></span>' : '') + esc(t || ''); s.style.color = bad ? 'var(--danger)' : 'var(--text-2)'; };
@@ -292,6 +374,9 @@
             h = '<div class="ai-note"><b>完全無料・オフライン</b>：内容がこの PC の外へ出ません。' + (WEB ? '次の3つを、上から順に行います（最初の1回だけ。できたところから、自動で進みます）。' : 'まず <b>Ollama</b> をインストールして起動し、AI モデルをダウンロードします（下記）。') + '</div>' +
               '<div class="ai-status" id="olStatus"><span class="ai-spin"></span>Ollama を確認しています…</div>' +
               '<div id="olBody"></div>';
+          } else if (p === 'browser') {
+            h = '<div class="ai-note"><b>インストール不要・無料・オフライン</b>：AI のファイル（約 500MB）を、このブラウザに<b>1 回だけ</b>読み込みます。そのあとは、ブラウザの中だけで動き、内容は外へ出ません。パソコンの GPU を使います（内蔵 GPU でも動きますが、速さは GPU 次第です）。<br><b>いまは、図解を作る機能の実験版です</b>（教材からノートを作る・プリントの機能は、Gemini か Ollama をお使いください）。</div>' +
+              '<div class="ai-status" id="brStatus"><span class="ai-spin"></span>このブラウザの状態を確認しています…</div><div id="brBody"></div>';
           } else if (p === 'anthropic') {
             h = keyBlock('anthropic', 'anthropic', 'Anthropic コンソールを開く') + '<div class="dlg-field"><label class="l">使うモデル</label><select id="kModelSel">' + opt(MODELS.map((m) => [m.id, m.label]), c.anthropic.model) + '</select></div>' +
               '<div class="opt-note">有料です。使った分だけ、このキーのアカウントに課金されます。</div>';
@@ -305,6 +390,37 @@
           h += '<div style="display:flex;gap:8px;margin-top:6px"><button type="button" class="btn primary" data-a="test">接続テスト</button></div>';
           panel.innerHTML = h;
           if (p === 'ollama') renderOllama();
+          if (p === 'browser') renderBrowser();
+        }
+
+        /* ----- ブラウザの中で動かす AI：GPU が使えるか・AI を読み込み済みか、を見せて、読み込むボタンを出す ----- */
+        let brSeq = 0;
+        async function renderBrowser() {
+          if (!root.document.getElementById('dlg').open || !form.isConnected) return;
+          const my = ++brSeq, o = cfg().browser;
+          const [st, mr] = await Promise.all([D.browserStatus(o), D.models('browser', o)]);
+          if (my !== brSeq) return;
+          const el = $('#brStatus', form), body = $('#brBody', form);
+          if (!el || !body) return;
+          const g = st.webgpu || {};
+          if (!g.ok) {
+            el.innerHTML = '<span style="color:var(--danger)">このブラウザでは使えません：' + esc(g.reason || '') + '</span>';
+            body.innerHTML = '<div class="opt-note">パソコンの Chrome・Edge の新しい版なら動きます。いま使っているブラウザでは、<button type="button" class="btn sm" data-a="pick" data-p="gemini">Gemini（無料・インストール不要）</button> か、Ollama をお使いください。</div>';
+            return;
+          }
+          if (st.available === false) { // このサイトに、AI を動かす部品／AI のファイルが、まだ置いていない（公開の準備中）
+            el.innerHTML = '<span style="color:var(--text-2)">この AI は、いま<b>準備中</b>です。</span>';
+            body.innerHTML = (/^ln-tuned\//.test(o.model || '') ? selfAiNote() : '') + '<div class="ai-note">このサイトには、まだ、この AI のファイルを置いていません。公開の準備ができしだい、ここから使えるようになります。それまでは、<button type="button" class="btn sm" data-a="pick" data-p="gemini">Gemini（無料・インストール不要）</button> か、Ollama をお使いください。</div>';
+            return;
+          }
+          const gpuName = [g.vendor, g.arch].filter(Boolean).join(' ');
+          el.innerHTML = '<span style="color:var(--ok)">GPU（WebGPU）が使えます' + (gpuName ? '（' + esc(gpuName) + '）' : '') + '。</span>　' +
+            (st.loaded ? '<b>AI は、いま読み込み済みです。</b>' : st.cached ? '<b>AI のファイルは、すでにこのブラウザに入っています。</b>ダウンロードは要りません。そのまま、接続テストへ進めます。' : 'AI のファイルは、まだ入っていません（最初の 1 回だけ、ダウンロードします）。');
+          const list = mr.ok ? mr.models : [];
+          body.innerHTML = (/^ln-tuned\//.test(o.model || '') ? selfAiNote() : '') + '<div class="dlg-field"><label class="l">使う AI</label><select id="kModelSel">' + opt(list.map((m) => [m.id, m.label]), o.model) + '</select></div>' +
+            '<div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap"><button type="button" class="btn primary" data-a="brload" data-cached="' + (st.cached ? '1' : '') + '"' + (st.loaded ? ' disabled' : '') + '>' + (st.loaded ? '読み込み済み' : st.cached ? '接続テストへ進む（ダウンロードは不要・数十秒）' : 'ダウンロードして、接続テスト（約 ' + Math.round(((list.find((m) => m.id === o.model) || {}).size || 715 * 1048576) / 1048576 / 10) * 10 + 'MB・最初の 1 回だけ）') + '</button></div>' +
+            '<div class="ai-status" id="brLoad"></div>' +
+            '<div class="opt-note">読み込まなくても、図解を作るときに、自動で読み込まれます。読み込んだ AI は、このブラウザに保存され、次からは速く始まります（ブラウザの保存データを消すと、また読み込みが必要です）。小型の AI なので、クラウドの AI より、図の品質は下がります。<b>最初の 1 回の図は、GPU の準備のため、時間がかかることがあります。</b></div>';
         }
 
         /* ----- Ollama の接続。ブラウザ版は、3つの手順を順に案内し、状態を自動で見守って、できたところから次へ進める ----- */
@@ -412,6 +528,18 @@
           if (phase !== 'ok') olTimer = setTimeout(renderOllama, 2500); // つながるまで、2.5秒ごとに自動で確かめる
         }
 
+        /** 接続テスト（選んでいるモデルで、ごく短い依頼を 1 回送って、返事が来るか確かめる）。成功なら true */
+        async function runTest() {
+          const c = cfg(), p = c.provider;
+          const model = ($('#kModel', form) || $('#kModelSel', form) || {}).value || c[p].model;
+          if (!model) { say('先にモデルを選んでください。', true); return false; }
+          c[p].model = model; save();
+          say('接続を確認しています…', false, true);
+          const r = await D.test(p, c[p]);
+          say(r.ok ? '接続できました。この AI を使えます。' : r.error.message, !r.ok);
+          return !!r.ok;
+        }
+
         form.addEventListener('click', async (e) => {
           const b = e.target.closest('[data-a]');
           if (!b) return;
@@ -431,15 +559,23 @@
           } else if (a === 'clearkey') { await D.clearKey(b.dataset.p); await refreshStatus(); renderPanel(); say('API キーを削除しました。'); }
           else if (a === 'models') { c[c.provider].model = ($('#kModel', form) || {}).value || c[c.provider].model; save(); loadModels(); }
           else if (a === 'olrecheck') renderOllama();
-          else if (a === 'test') {
-            const p = c.provider;
-            const model = ($('#kModel', form) || $('#kModelSel', form) || {}).value || c[p].model;
-            if (!model) { say('先にモデルを選んでください。', true); return; }
-            c[p].model = model; save();
-            say('接続を確認しています…', false, true);
-            const r = await D.test(p, c[p]);
-            say(r.ok ? '接続できました。この AI を使えます。' : r.error.message, !r.ok);
-          } else if (a === 'pull') {
+          else if (a === 'brload') {
+            // すでにこのブラウザに入っていれば、ダウンロードは省いて（保存済みのファイルから読み込んで）、そのまま接続テストへ進む。入っていなければ、ダウンロードのあと、続けて接続テストをする
+            const pid = 'brload-' + Date.now(), el = $('#brLoad', form), had = b.dataset.cached === '1';
+            const off = D.onEvent((ev) => {
+              if (ev.id !== pid || ev.type !== 'pull') return;
+              el.innerHTML = '<span class="ai-spin"></span>' + esc(ev.status) + (ev.total ? '　' + Math.round(ev.completed / ev.total * 100) + '%（' + (ev.completed / 1048576).toFixed(0) + ' / ' + (ev.total / 1048576).toFixed(0) + ' MB）' : '');
+            });
+            el.innerHTML = '<span class="ai-spin"></span>' + (had ? '保存済みのファイルを読み込んでいます…' : 'ダウンロードを開始しています…');
+            if (had) say('すでにこのブラウザに入っているので、ダウンロードは省いて、そのまま接続テストへ進みます…', false, true);
+            b.disabled = true;
+            const r = await D.browserLoad(pid, c.browser);
+            off();
+            el.textContent = '';
+            if (r.ok) await runTest(); else say(r.error.message, true);
+            renderBrowser();
+          } else if (a === 'test') await runTest();
+          else if (a === 'pull') {
             const model = b.dataset.model, pid = 'pull-' + Date.now(), el = $('#olPull', form);
             const off = D.onEvent((ev) => {
               if (ev.id !== pid || ev.type !== 'pull') return;
@@ -454,7 +590,7 @@
         form.addEventListener('change', (e) => {
           const c = cfg(), t = e.target, p = c.provider;
           if (t.id === 'kRemember' && WEB) { LN.webAi.setRemember(t.checked); say(t.checked ? 'このブラウザにキーを記憶します。' : 'キーを記憶しません。ブラウザを閉じると、キーを忘れます。'); }
-          else if (t.id === 'kModelSel') { c[p].model = t.value; save(); }
+          else if (t.id === 'kModelSel') { c[p].model = t.value; save(); if (p === 'browser') renderBrowser(); } // AI を変えると、注意書きと、ダウンロードが要るか（保存済みか）の表示も変わる
           else if (t.id === 'kModel') { c[p].model = t.value.trim(); save(); }
           else if (t.id === 'kVision') { c[p].vision = t.checked; save(); }
           else if (t.id === 'kNumCtx') { c.ollama.numCtx = parseInt(t.value, 10); save(); }
@@ -508,6 +644,7 @@
         '<div class="ai-grid"><div class="dlg-field"><label class="l">詳しさ</label><select id="mLevel">' + opt([['short', '簡潔'], ['normal', '標準'], ['long', '詳しい']], 'normal') + '</select></div>' +
         '<div class="dlg-field"><label class="l">保存先</label><select id="mTarget">' + opt(targets, 'note') + '</select></div></div>' +
         (sc.notes.length ? '<label class="check"><input type="checkbox" id="mUseNotes" checked> この単元の既存ノート（' + sc.notes.length + '件）も参考にする</label>' : '') +
+        (WEB && ai.provider() === 'ollama' ? '<label class="check"><input type="checkbox" id="mChunk" checked> 長い教材は、区切って作る（止まりにくく、進み具合が見えます。おすすめ）</label>' : '') +
         '<div class="dlg-field"><label class="l">追加の指示（任意）</label><textarea id="mExtra" placeholder="例）先生が「試験に出る」と言った部分を重点的に。英語の用語は英語も併記して。"></textarea></div>' +
         '<div class="ai-status" id="mStatus"></div><div class="ai-out md" id="mOut" hidden></div>' +
         '<div style="display:flex;gap:8px;justify-content:flex-end"><button type="button" class="btn primary" id="mGo" disabled>生成する</button><button type="button" class="btn" id="mStop" hidden>停止</button><button type="button" class="btn primary" id="mApply" hidden>この内容を保存する</button></div>',
@@ -551,7 +688,87 @@
         const out = $('#mOut', form);
         const paint = throttle(() => { out.innerHTML = md().render(partialSafe(result)); out.scrollTop = out.scrollHeight; }, 250);
 
+        /** 教材の文字をすべて取り出す（テキストはそのまま、PDF はこのブラウザの中で文字にする）。画像は、区切り処理では使わない */
+        async function materialsText() {
+          const texts = [], skipped = { images: 0, noTextPdf: [] };
+          for (const it of items.filter((x) => x.res)) {
+            for (const b of it.res.blocks) {
+              if (b.type === 'text') texts.push(b.text);
+              else if (b.type === 'document' && LN.webAi && LN.webAi.pdfText) {
+                try { const r = await LN.webAi.pdfText(b.source.data); if (r.hasText) texts.push('（PDF の本文。約' + r.pages + 'ページ）\n' + r.text); else skipped.noTextPdf.push(it.file.name); } catch (e) { skipped.noTextPdf.push(it.file.name); }
+              } else if (b.type === 'image') skipped.images++;
+            }
+          }
+          return { text: texts.join('\n\n'), skipped };
+        }
+
+        let stopped = false;
+        /** 長い教材を、区切って作る。1 区切りずつ、AI に要点を頼み、あとで、ノートの形に組み立てる。止めても、そこまでの分は残る */
+        async function runChunked(src) {
+          const CH = LN.chunks, lv = CHUNK_LEVEL[$('#mLevel', form).value] || CHUNK_LEVEL.normal;
+          const chunks = CH.split(src.text), n = chunks.length, extra = $('#mExtra', form).value.trim();
+          const parts = [], secs = [];
+          let fatal = null, ov = null;
+          stopped = false; aiNotes.length = 0;
+          busy = true; finalMsg = ''; result = ''; out.hidden = false; out.innerHTML = '';
+          $('#mGo', form).hidden = true; $('#mStop', form).hidden = false; $('#mApply', form).hidden = true;
+          const showPartial = () => { result = CH.build(parts, { partial: true }); out.innerHTML = md().render(result); out.scrollTop = out.scrollHeight; };
+          const remain = (i) => { const r = CH.remainingSec(secs, n - i); return r == null ? '' : '　全体の残りは' + fmtSec(r); };
+          for (let i = 0; i < n && !stopped && !fatal; i++) {
+            const t0 = Date.now();
+            const prompt = '【教科】' + sc.subject.name + (sc.unit ? '／【単元】' + sc.unit.name : '') + '\n【詳しさ】points は ' + lv.pts + '。' + (extra ? '\n【追加の指示】' + extra : '') + '\n【教材の一部（' + (i + 1) + '/' + n + '）】\n' + chunks[i];
+            let p = null;
+            for (let attempt = 0; attempt < 2 && !p && !stopped && !fatal; attempt++) {
+              status('区切り ' + (i + 1) + '/' + n + ' を作っています…', true);
+              job = ai.run({
+                system: SYS_CHUNK, messages: [{ role: 'user', content: prompt }], maxTokens: lv.max, expectTokens: lv.expect, schema: CH.CHUNK_SCHEMA,
+                onStatus: (s, h) => status('区切り ' + (i + 1) + '/' + n + '：' + statText(s, '読み込んで考えています…', '要点を書いています…', h) + remain(i), true),
+                onNote: (x) => { if (!aiNotes.includes(x)) aiNotes.push(x); },
+              });
+              try { const r = await job.done; p = CH.parseChunk(r.text); }
+              catch (e) { if (e.kind === 'cancelled') stopped = true; else if (['network', 'model_missing', 'auth', 'too_large', 'bad_request'].includes(e.kind)) fatal = e; }
+              job = null;
+            }
+            if (stopped || fatal) break;
+            parts.push(p); secs.push((Date.now() - t0) / 1000);
+            showPartial();
+          }
+          if (!stopped && !fatal && parts.some(Boolean)) {
+            const t0 = Date.now();
+            status('全体の概要を作っています…', true);
+            job = ai.run({
+              system: SYS_OVERVIEW, messages: [{ role: 'user', content: CH.overviewSource(parts) }], maxTokens: 500, expectTokens: 250, schema: CH.OVERVIEW_SCHEMA,
+              onStatus: (s, h) => status('全体の概要を作っています…' + (h ? '　' + h : ''), true),
+            });
+            try { const r = await job.done; ov = CH.parseOverview(r.text); } catch (e) { if (e.kind === 'cancelled') stopped = true; }
+            job = null;
+          }
+          const made = parts.filter(Boolean).length, done = parts.length;
+          result = parts.length ? CH.build(parts, { title: ov && ov.title, overview: ov && ov.overview, partial: stopped || !!fatal }) : '';
+          out.innerHTML = result ? md().render(result) : '';
+          const bits = [];
+          if (fatal) bits.push('AI につながらなくなりました（' + errText(fatal) + '）。' + (result ? '途中までの内容を保存できます。' : ''));
+          else if (stopped) bits.push('停止しました（' + done + '/' + n + ' 区切りまで）。' + (result ? '途中までの内容を保存できます。' : ''));
+          else bits.push('完成しました（' + n + ' 区切り' + (made < n ? '。うち ' + (n - made) + ' 区切りは作れず、「要確認」と書きました' : '') + '）。内容を確認して、保存してください。（AI の出力には誤りが含まれることがあります）');
+          if (src.skipped.images) bits.push('画像 ' + src.skipped.images + ' 枚は、区切り処理では使っていません。');
+          if (src.skipped.noTextPdf.length) bits.push('文字を読み取れない PDF（' + src.skipped.noTextPdf.join('、') + '）は、使っていません。');
+          if ($('#mUseNotes', form) && $('#mUseNotes', form).checked) bits.push('区切り処理では、既存ノートは参考にしていません。');
+          finalMsg = bits.concat(aiNotes).join(' ');
+          $('#mApply', form).hidden = !result.trim();
+          status(finalMsg);
+          busy = false; job = null;
+          $('#mGo', form).hidden = false; $('#mStop', form).hidden = true; renderFiles();
+          $('#mGo', form).textContent = '生成し直す';
+        }
+
         $('#mGo', form).onclick = async () => {
+          // Ollama で、教材の文字が長いときは、区切って作る（止まりにくく、進み具合が見える）
+          if (WEB && ai.provider() === 'ollama' && $('#mChunk', form) && $('#mChunk', form).checked) {
+            status('教材の文字を取り出しています…', true);
+            const src = await materialsText();
+            if (src.text.length > CHUNK_MODE_CHARS) { await runChunked(src); return; }
+            status('');
+          }
           const content = [];
           items.filter((it) => it.res).forEach((it) => content.push(...it.res.blocks));
           const useNotes = $('#mUseNotes', form) && $('#mUseNotes', form).checked;
@@ -568,7 +785,7 @@
           status('AI に送信しています…', true);
           job = ai.run({
             system: SYS_MATERIALS, messages: [{ role: 'user', content }], maxTokens: 32000,
-            onStatus: (s) => status(statText(s, '教材を読み込んで考えています…（数十秒〜数分かかります）', '書いています…'), true),
+            onStatus: (s, h) => status(statText(s, '教材を読み込んで考えています…（数十秒〜数分かかります）', '書いています…', h), true),
             onText: (t) => { result += t; paint(); }, onNote: (n) => { aiNotes.push(n); },
           });
           try {
@@ -589,7 +806,7 @@
           $('#mGo', form).hidden = false; $('#mStop', form).hidden = true; renderFiles();
           $('#mGo', form).textContent = '生成し直す';
         };
-        $('#mStop', form).onclick = () => { if (job) job.cancel(); };
+        $('#mStop', form).onclick = () => { stopped = true; if (job) job.cancel(); };
 
         $('#mApply', form).onclick = () => {
           const target = $('#mTarget', form).value;
@@ -617,84 +834,128 @@
     if (job) job.cancel();
   }
 
-  /* ---------- 図解 ---------- */
-  const DIAGRAM_KINDS = [['auto', 'おまかせ'], ['flow', 'フローチャート（手順・流れ）'], ['cycle', '循環図（サイクル）'], ['concept', '関係図・概念マップ'], ['compare', '比較表・対比図'],
-    ['timeline', '年表・時系列'], ['tree', '階層・分類図（ツリー）'], ['graph', 'グラフ・数直線・座標図']];
+  /* ---------- 図解（AI は「設計図」だけを書き、図はアプリが自動で描く。見た目は描画パターンで選ぶ） ---------- */
+  const DIAGRAM_KINDS = [['auto', 'おまかせ']].concat(LN.diagram ? LN.diagram.TYPES : []);
+  const DIR_OPTS = [['auto', 'おまかせ'], ['tb', '縦（上から下へ）'], ['lr', '横（左から右へ）']];
+  const DIR_TYPES = ['flow', 'tree', 'timeline', 'map']; // 向きを選べる図（循環図・比較表は、向きが無い）
 
-  function extractSvg(text) {
-    const m = /<svg[\s\S]*<\/svg>/i.exec(text || '');
-    return m ? m[0] : '';
-  }
+  /** 自作の AI（図解用に学習した、ブラウザの中の AI）のときだけ出す、注意書き。ちゃんと材料を入れてもらうための案内 */
+  const isSelfAi = () => cfg().provider === 'browser' && /^ln-tuned\//.test((cfg().browser || {}).model || '');
+  const selfAiNote = (hint) => '<div class="ai-note warn"><b>これは、システム制作者が自作した小さな AI です。</b>ちゃんとデータを入れないと、笑えないほどの出来のものができます。<b>ちゃんとデータを入れることをお勧めします。</b>' + (hint ? '<br>' + hint : '') + '</div>';
 
   async function openDiagram(spec) {
-    if (!(await ensureReady())) return;
-    let job = null, svg = '', history = null, busy = false;
+    const DG = LN.diagram;
+    if (!DG) { U.toast('図解の部品を読み込めませんでした。ページを開き直してください'); return; }
+    if (!(await ensureReady('diagram'))) return;
+    let job = null, bp = null, svg = '', hist = null;
+    let style = (cfg().diagram || {}).style;
+    if (!DG.styles().some((x) => x.id === style)) style = DG.styles()[0].id; // 記憶が無い・昔の名前のときは、先頭（シンプルフラット）
+    const ctxLen = Math.min((spec.context || '').length, 5000);
 
     const dlgPromise = U.ask({
       title: '図解を作る', wide: true, hideOk: true, cancelText: '閉じる',
-      body: '<div class="ai-note">作りたい図を文章で説明してください。' + (spec.context ? '下の「参考にする文章」を材料にします。' : '') + '生成した図は、ノートや単元まとめに<b>画像として挿入</b>され、印刷プリントにも入ります。</div>' +
+      body: '<div class="ai-note">作りたい図を文章で説明してください。AI は図の<b>設計図</b>（どの項目を、どうつなぐか）だけを作り、図そのものは、アプリが自動で描きます。<b>描き方（色・形）は、できたあとで自由に選び直せます</b>。' + (spec.context ? '下の「参考にする文章」を材料にします。' : '') + '生成した図は、ノートや単元まとめに<b>画像として挿入</b>され、印刷プリントにも入ります。</div>' +
+        (isSelfAi() ? selfAiNote('（' + (spec.context ? '下の「' + esc(spec.contextLabel || '参考にする文章') + '」を材料に含めるか、' : '') + '「何を図解しますか？」に、図にしたい内容まで書いてください。例：「江戸時代の出来事を年表に」だけでなく、出来事の名前と年も書く）') : '') +
         '<div class="dlg-field"><label class="l">何を図解しますか？</label><textarea id="dRequest" placeholder="例）光合成の「明反応」と「カルビン回路」の関係を、場所と、出入りする物質がわかるように図解して"></textarea></div>' +
-        '<div class="ai-grid"><div class="dlg-field"><label class="l">図の種類</label><select id="dKind">' + opt(DIAGRAM_KINDS, 'auto') + '</select></div>' +
-        '<div class="dlg-field"><label class="l">配色</label><select id="dColor">' + opt([['color', 'カラー'], ['mono', '白黒印刷向け（濃淡と線種で区別）']], 'color') + '</select></div></div>' +
-        (spec.context ? '<label class="check"><input type="checkbox" id="dUseCtx" checked> ' + esc(spec.contextLabel || '参考にする文章') + 'を材料に含める（' + spec.context.length + '文字）</label>' : '') +
+        '<div class="dlg-field"><label class="l">図の種類</label><select id="dKind">' + opt(DIAGRAM_KINDS, 'auto') + '</select></div>' +
+        (spec.context ? '<label class="check"><input type="checkbox" id="dUseCtx" checked> ' + esc(spec.contextLabel || '参考にする文章') + 'を材料に含める（' + ctxLen + '文字' + (spec.context.length > 5000 ? '。長いので、先頭だけ' : '') + '）</label>' : '') +
         '<div class="ai-status" id="dStatus"></div>' +
         '<div class="ai-diagram-preview" id="dPrev"><span style="color:var(--text-3);font-size:12.5px">ここに図が表示されます</span></div>' +
-        '<div class="dlg-field" id="dRefineRow" hidden><label class="l">修正の指示</label><div style="display:flex;gap:6px"><input type="text" id="dRefine" placeholder="例）矢印を太く／文字を大きく／「ATP」の説明を追加" style="flex:1"><button type="button" class="btn" id="dRefineGo">修正する</button></div></div>' +
+        '<div class="dlg-field" id="dStylesRow" hidden><label class="l">描き方（好みで選べます）</label><div class="dg-styles" id="dStyles"></div>' +
+        '<div style="display:flex;gap:8px;align-items:center;margin-top:8px"><label class="l" style="margin:0">向き</label><select id="dDir">' + opt(DIR_OPTS, 'auto') + '</select></div></div>' +
+        '<div class="dlg-field" id="dRefineRow" hidden><label class="l">修正の指示</label><div style="display:flex;gap:6px"><input type="text" id="dRefine" placeholder="例）「ATP」の説明を追加／項目を減らして／「呼吸」を足して" style="flex:1"><button type="button" class="btn" id="dRefineGo">修正する</button></div></div>' +
+        '<details id="dBpWrap" class="dg-bp" hidden><summary>設計図を見る・直接直す（上級者向け）</summary><textarea id="dBp" spellcheck="false"></textarea>' +
+        '<div style="margin-top:6px"><button type="button" class="btn sm" id="dBpApply">この設計図で描き直す</button></div></details>' +
         '<div style="display:flex;gap:8px;justify-content:flex-end;flex-wrap:wrap"><button type="button" class="btn primary" id="dGo">図を作る</button><button type="button" class="btn" id="dStop" hidden>停止</button>' +
         '<button type="button" class="btn" id="dSave" hidden>SVG を保存</button><button type="button" class="btn primary" id="dInsert" hidden>' + esc(spec.insertLabel || 'ノートに挿入') + '</button></div>',
       onOpen(form, close) {
-        const status = (t, spin) => { $('#dStatus', form).innerHTML = (spin ? '<span class="ai-spin"></span>' : '') + esc(t || ''); };
-        const setBusy = (b) => {
-          busy = b;
-          $('#dGo', form).hidden = b; $('#dStop', form).hidden = !b; $('#dRefineGo', form).disabled = b;
+        const q = (sel) => $(sel, form);
+        const status = (t, spin) => { q('#dStatus').innerHTML = (spin ? '<span class="ai-spin"></span>' : '') + esc(t || ''); };
+        const setBusy = (b) => { q('#dGo').hidden = b; q('#dStop').hidden = !b; q('#dRefineGo').disabled = b; q('#dBpApply').disabled = b; };
+        const paintStyles = () => {
+          q('#dStyles').innerHTML = DG.styles().map((x) => {
+            const r = DG.render(bp, { style: x.id, dir: q('#dDir').value });
+            return '<button type="button" class="dg-style" data-id="' + x.id + '" aria-pressed="' + (x.id === style) + '" title="' + esc(x.desc) + '">' + (r.ok ? '<img alt="" src="' + LN.svg.toDataUrl(r.svg) + '">' : '') + '<span>' + esc(x.label) + '</span></button>';
+          }).join('');
         };
-        const show = (raw) => {
-          const r = LN.svg.sanitize(extractSvg(raw));
-          if (!r.ok) { status('図を表示できませんでした：' + r.error + '。もう一度お試しください。'); return false; }
-          svg = r.svg;
-          $('#dPrev', form).innerHTML = '<img alt="図解" src="' + LN.svg.toDataUrl(svg) + '">';
-          $('#dRefineRow', form).hidden = false; $('#dSave', form).hidden = false; $('#dInsert', form).hidden = false;
-          status('できました。修正したい点があれば指示してください。（AI の図には誤りが含まれることがあります）');
-          return true;
+        /** 設計図 bp を、いまの描き方で描いてプレビューに出す（AI は使わない。すぐ終わる） */
+        const draw = () => {
+          const r = DG.render(bp, { style, dir: q('#dDir').value });
+          if (!r.ok) { status('図を描けませんでした：' + r.error); return false; }
+          const sr = LN.svg.sanitize(r.svg);
+          if (!sr.ok) { status('図を表示できませんでした：' + sr.error); return false; }
+          svg = sr.svg;
+          q('#dPrev').innerHTML = '<img alt="図解" src="' + LN.svg.toDataUrl(svg) + '">';
+          paintStyles();
+          q('#dBp').value = DG.toJSON(bp, true);
+          q('#dDir').disabled = !DIR_TYPES.includes(bp.type);
+          ['#dStylesRow', '#dRefineRow', '#dBpWrap', '#dSave', '#dInsert'].forEach((sel) => { q(sel).hidden = false; });
+          return { warnings: r.warnings || [] };
         };
-        const run = async (messages) => {
-          setBusy(true); status('AI に送信しています…', true);
+        const doneMsg = (d) => 'できました。描き方は下で選べます。修正したい点があれば指示してください。（AI の図には誤りが含まれることがあります）' + (d.warnings.length ? '　※' + d.warnings.slice(0, 2).join('／') : '');
+        const run = async (messages, type, system) => {
+          setBusy(true); status(cfg().provider === 'browser' ? 'AI の準備をしています…' : 'AI に送信しています…', true);
           let text = '';
-          job = ai.run({ system: SYS_DIAGRAM, messages, maxTokens: 16000, onStatus: (s) => status(statText(s, '図の構成を考えています…', 'SVG を書いています…'), true), onText: (t) => { text += t; } });
+          job = ai.run({ system: system || DG.systemPrompt(type), messages, maxTokens: 2500, schema: DG.SCHEMA, onStatus: (st, h) => status(statText(st, '設計図を考えています…', '設計図を書いています…', h), true), onText: (t) => { text += t; } });
           try {
             const r = await job.done;
             text = r.text || text;
             if (r.stopReason === 'refusal') status('AI がこの内容への回答を控えました。');
-            else if (show(text)) history = messages.concat([{ role: 'assistant', content: text }]);
+            else {
+              const pr = DG.parse(text);
+              if (!pr.ok) status('設計図を読み取れませんでした（' + pr.error + '）。もう一度お試しください。');
+              else {
+                bp = pr.bp; hist = messages.concat([{ role: 'assistant', content: DG.toJSON(bp) }]);
+                const d = draw();
+                if (d) status(doneMsg({ warnings: pr.warnings.concat(d.warnings) }));
+              }
+            }
           } catch (e) { status(errText(e)); }
           job = null; setBusy(false);
         };
-        $('#dGo', form).onclick = () => {
-          const req = $('#dRequest', form).value.trim();
+        q('#dGo').onclick = () => {
+          const req = q('#dRequest').value.trim();
           if (!req) { status('図にしたい内容を入力してください。'); return; }
-          const useCtx = $('#dUseCtx', form) && $('#dUseCtx', form).checked;
-          const kind = DIAGRAM_KINDS.find((k) => k[0] === $('#dKind', form).value);
-          const text = (useCtx ? '【参考にする文章】\n' + spec.context + '\n\n' : '') + '【図解の依頼】\n' + req + '\n図の種類：' + kind[1] +
-            '\n配色：' + ($('#dColor', form).value === 'mono' ? '白黒印刷向け。黒・グレーの濃淡と、実線/破線/文字ラベルで区別する。' : 'カラー。落ち着いた 2〜3 色。');
-          run([{ role: 'user', content: text }]);
+          const useCtx = q('#dUseCtx') && q('#dUseCtx').checked, type = q('#dKind').value, context = useCtx ? spec.context : '';
+          // 学習した AI（ブラウザの中・prompt:'short'）には、学習データと同じ形の短い指示文を渡す。それ以外は、図の種類の説明つきの長い指示文
+          if (cfg().provider === 'browser' && (cfg().browser.prompt === 'short' || /^ln-tuned\//.test(cfg().browser.model))) {
+            const tp = DG.tunedPrompt({ type, request: req, context });
+            run([{ role: 'user', content: tp.user }], type, tp.system);
+          } else run([{ role: 'user', content: DG.userPrompt({ request: req, type, context }) }], type);
         };
-        $('#dRefineGo', form).onclick = () => {
-          const ins = $('#dRefine', form).value.trim();
-          if (!ins || !history) return;
-          $('#dRefine', form).value = '';
-          run(history.concat([{ role: 'user', content: '次の修正を反映して、SVG 全体を出力し直してください。\n' + ins }]));
+        q('#dRefineGo').onclick = () => {
+          const ins = q('#dRefine').value.trim();
+          if (!ins || !hist || !bp) return;
+          q('#dRefine').value = '';
+          run(hist.concat([{ role: 'user', content: DG.refinePrompt(ins) }]), bp.type);
         };
-        $('#dStop', form).onclick = () => { if (job) job.cancel(); };
-        $('#dSave', form).onclick = () => {
+        q('#dStyles').onclick = (e) => {
+          const b = e.target.closest('.dg-style');
+          if (!b || !bp) return;
+          style = b.dataset.id;
+          const c = cfg(); c.diagram = Object.assign({}, c.diagram, { style }); LN.save();
+          draw();
+        };
+        q('#dDir').onchange = () => { if (bp) draw(); };
+        q('#dBpApply').onclick = () => {
+          const r = DG.parse(q('#dBp').value);
+          if (!r.ok) { status('設計図を読み取れませんでした：' + r.error); return; }
+          bp = r.bp;
+          hist = (hist ? hist.slice(0, -1) : [{ role: 'user', content: '（設計図を直接入力しました）' }]).concat([{ role: 'assistant', content: DG.toJSON(bp) }]);
+          const d = draw();
+          if (d) status('設計図から描き直しました。' + (r.warnings.length ? '　※' + r.warnings.slice(0, 2).join('／') : ''));
+        };
+        q('#dStop').onclick = () => { if (job) job.cancel(); };
+        q('#dSave').onclick = () => {
           const a = document.createElement('a');
           a.href = URL.createObjectURL(new Blob([svg], { type: 'image/svg+xml' }));
           a.download = 'zukai-' + LN.today() + '.svg';
           document.body.appendChild(a); a.click();
           setTimeout(() => { URL.revokeObjectURL(a.href); a.remove(); }, 1000);
         };
-        $('#dInsert', form).onclick = async () => {
+        q('#dInsert').onclick = async () => {
           const id = await LN.addImage(LN.svg.toDataUrl(svg));
-          const alt = ($('#dRequest', form).value.trim().replace(/[\[\]\n]/g, ' ').slice(0, 30)) || '図解';
+          const alt = (q('#dRequest').value.trim().replace(/[\[\]\n]/g, ' ').slice(0, 30)) || (bp && bp.title) || '図解';
           close(null);
           spec.onInsert('![図解：' + alt + '](img:' + id + ')');
           U.toast('図解を挿入しました');
@@ -837,7 +1098,7 @@
     const statusEl = () => $('#csStatus');
     cs.job = ai.run({
       system: SYS_SHEET, messages, maxTokens: 32000,
-      onStatus: (s) => { cs.status = statText(s, '内容を考えています…（数十秒〜数分）', '作成中です…'); const e = statusEl(); if (e) e.innerHTML = '<span class="ai-spin"></span>' + esc(cs.status); },
+      onStatus: (s, h) => { cs.status = statText(s, '内容を考えています…（数十秒〜数分）', '作成中です…', h); const e = statusEl(); if (e) e.innerHTML = '<span class="ai-spin"></span>' + esc(cs.status); },
       onText: (t) => { text += t; paint(); },
     });
     try {
