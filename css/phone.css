@@ -70,7 +70,8 @@ html.is-phone .ed-meta .fld { display: flex; flex-direction: column; align-items
 html.is-phone .ed-meta input[type=date], html.is-phone .ed-meta select { width: 100%; min-width: 0; padding: 7px 8px; }
 html.is-phone .ed-meta .fld:nth-child(3) { flex-direction: row; align-items: center; gap: 8px; }
 html.is-phone .ed-meta .toggle { justify-self: start; padding: 6px 12px; }
-html.is-phone .study-hint { padding: 5px 14px; order: 0; }
+html.is-phone .study-hint, html.is-phone .marker-hint { padding: 5px 14px; order: 0; }
+html.is-phone .mk-sw { min-width: 36px; height: 36px; } html.is-phone .mk-sw i { width: 24px; height: 24px; } html.is-phone .mk-sw.mk-eraser { padding: 0 12px; }
 html.is-phone .ed-body { order: 1; }
 html.is-phone .ed-toolbar {
   order: 2; flex-wrap: nowrap; overflow-x: auto; scrollbar-width: none; gap: 2px;

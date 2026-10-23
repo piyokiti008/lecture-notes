@@ -142,6 +142,26 @@ input[type=checkbox], input[type=radio] { accent-color: var(--accent); width: 15
 .study .qa-a:not(.revealed) { cursor: pointer; }
 .study .qa-a:not(.revealed) .qa-body { filter: blur(7px); user-select: none; }
 .study-hint { font-size: 12px; color: var(--accent-text); background: var(--accent-soft); padding: 5px 24px; }
+/* マーカー（「マーカー」を押すと「マーカー中」。文字をなぞって選ぶと、重要マークになる） */
+.tb.marker .i { color: var(--warn); }
+:root { --mark-p: light-dark(#ffd0de, #7a3a52); --mark-g: light-dark(#c8ebc4, #2f5f35); --mark-b: light-dark(#c6dfff, #2f4d7a); --mark-o: light-dark(#ffd8a0, #7a5222); }   /* マーカーの色（黄は、テーマごとの --mark） */
+.tb.marker { --mk-cur: var(--mark); }
+.tb.marker[data-c="p"] { --mk-cur: var(--mark-p); } .tb.marker[data-c="g"] { --mk-cur: var(--mark-g); } .tb.marker[data-c="b"] { --mk-cur: var(--mark-b); } .tb.marker[data-c="o"] { --mk-cur: var(--mark-o); } .tb.marker[data-c="e"] { --mk-cur: var(--line-2); }
+.tb.marker .i { border-bottom: 3px solid var(--mk-cur); padding-bottom: 1px; box-sizing: content-box; }
+.tb.marker.on { background: var(--mk-cur); color: var(--text); box-shadow: inset 0 0 0 1.5px var(--warn); }
+.tb.marker.on .i { color: var(--text); border-bottom-color: transparent; }
+.marker-hint { display: flex; align-items: center; gap: 6px 14px; flex-wrap: wrap; font-size: 12px; color: var(--text); background: var(--line-2); padding: 6px 24px; border-bottom: 1px solid var(--line); }
+.marker-hint[hidden] { display: none; }
+.mk-pal { display: inline-flex; align-items: center; gap: 6px; }
+.mk-sw { display: inline-flex; align-items: center; justify-content: center; min-width: 26px; height: 26px; padding: 0; border: 2px solid transparent; border-radius: 999px; background: transparent; color: var(--text-2); font-size: 12px; font-weight: 700; }
+.mk-sw i { display: block; width: 18px; height: 18px; border-radius: 50%; background: var(--mark); box-shadow: inset 0 0 0 1px rgba(0, 0, 0, .18); }
+.mk-sw[data-c="p"] i { background: var(--mark-p); } .mk-sw[data-c="g"] i { background: var(--mark-g); } .mk-sw[data-c="b"] i { background: var(--mark-b); } .mk-sw[data-c="o"] i { background: var(--mark-o); }
+.mk-sw.on { border-color: var(--text); }
+.mk-sw.mk-eraser { padding: 0 10px; border-radius: 6px; border-color: var(--line); background: var(--panel); }
+.mk-sw.mk-eraser.on { border-color: var(--text); background: var(--line-2); }
+.mk-help { color: var(--text-2); }
+.mk-help b { color: var(--text); }
+.ed-body.marker-on .cm-content, .ed-body.marker-on .cm-line, .ed-body.marker-on textarea { cursor: url("data:image/svg+xml,%3Csvg%20xmlns%3D%27http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%27%20width%3D%2724%27%20height%3D%2724%27%20viewBox%3D%270%200%2024%2024%27%3E%3Cpath%20d%3D%27M14%203l7%207-9%209-7-7z%27%20fill%3D%27%23ffe066%27%20stroke%3D%27%23333%27%20stroke-width%3D%271.4%27%20stroke-linejoin%3D%27round%27%2F%3E%3Cpath%20d%3D%27M5.5%2012.5L3%2021l8.5-2.5z%27%20fill%3D%27%23333%27%2F%3E%3C%2Fsvg%3E") 3 21, text; }
 
 .welcome { margin: auto; max-width: 620px; padding: 32px; text-align: center; }
 .welcome h1 { font-size: 26px; margin: 0 0 8px; }
@@ -151,6 +171,8 @@ input[type=checkbox], input[type=radio] { accent-color: var(--accent); width: 15
 .step b { display: block; color: var(--accent-text); margin-bottom: 4px; }
 .step span { font-size: 12.5px; color: var(--text-2); line-height: 1.6; }
 .welcome .row { display: flex; gap: 10px; justify-content: center; }
+.welcome-help { margin: 16px 0 0; font-size: 13px; }
+.welcome-help a, .ai-guide a, .help-guide a { color: var(--accent-text); }
 .center-msg { margin: auto; text-align: center; color: var(--text-3); line-height: 1.9; padding: 30px; }
 
 /* ---------- 考査対策 ---------- */
@@ -252,6 +274,8 @@ dialog::backdrop { background: rgba(20, 20, 24, .45); }
 /* 棚への投稿（js/shelf/post.js のダイアログ） */
 .pst, #pstBody { display: flex; flex-direction: column; gap: 12px; }
 .pst-tabs { display: flex; gap: 6px; flex-wrap: wrap; }
+.pst-guide { margin: 8px 0 4px; font-size: 12.5px; }
+.pst-guide a { color: var(--accent-text); }
 .pst-sub { margin: 0; font-size: 12px; color: var(--text-2); line-height: 1.7; }
 .pst-sub.err, .pst-msg { color: var(--danger); }
 .pst-msg { margin: 0; font-size: 13px; line-height: 1.6; }
@@ -307,6 +331,7 @@ a.btn { text-decoration: none; display: inline-block; }
 .tb.ai .k, .btn.ai .k { color: var(--accent-text); background: var(--accent-soft); border-radius: 4px; padding: 0 4px; font-size: 10px; font-weight: 800; }
 .btn.ai { border-color: var(--accent-soft); background: var(--accent-soft); color: var(--accent-text); }
 .btn.ai:hover { background: var(--accent-soft); border-color: var(--accent); }
+.ai-guide { margin: 8px 0 10px; font-size: 13px; }
 .ai-note { font-size: 12px; color: var(--text-2); background: var(--panel-2); border: 1px solid var(--line); border-radius: var(--r-sm); padding: 8px 10px; line-height: 1.7; }
 .ai-note.warn { background: var(--warn-soft); border-color: transparent; color: var(--warn); }
 .ai-drop { border: 2px dashed var(--line); border-radius: var(--r-lg); padding: 16px; text-align: center; color: var(--text-2); font-size: 13px; transition: background .12s, border-color .12s; }

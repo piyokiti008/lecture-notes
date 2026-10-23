@@ -82,8 +82,8 @@ a.sh-btn { display: block; text-align: center; text-decoration: none; line-heigh
 .sh-likerow { align-items: center; margin: 0 0 6px; }
 .sh-likebox .sh-sub { margin: 0; font-size: 12px; color: var(--text-2); }
 /* ノート形式の表示（css/sheet.css の .md の見た目を、棚の配色に合わせる） */
-.sh-notebody { --md-line: var(--line); --md-soft: var(--info-bg); --md-sub: var(--text-2); --md-accent: var(--accent); --mark: #fff2a8; font-size: 15px; overflow-wrap: anywhere; }
-@media (prefers-color-scheme: dark) { .sh-notebody { --mark: #5b4d12; } }
+.sh-notebody { --md-line: var(--line); --md-soft: var(--info-bg); --md-sub: var(--text-2); --md-accent: var(--accent); --mark: #fff2a8; --mark-p: #ffd0de; --mark-g: #c8ebc4; --mark-b: #c6dfff; --mark-o: #ffd8a0; font-size: 15px; overflow-wrap: anywhere; }
+@media (prefers-color-scheme: dark) { .sh-notebody { --mark: #5b4d12; --mark-p: #6e3449; --mark-g: #2c5632; --mark-b: #2c4770; --mark-o: #6e4a1d; } }
 .sh-notecard { padding: 14px 16px; }
 .sh-notebody img { max-width: 100%; height: auto; }
 .sh-notebody table { display: block; overflow-x: auto; max-width: 100%; }

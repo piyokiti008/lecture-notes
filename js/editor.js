@@ -133,7 +133,7 @@
     bold: /\*\*(?=\S)([\s\S]+?)(?<=\S)\*\*/g,
     em: /(?<![*\w])\*(?=[^\s*])([^*\n]+?)(?<=[^\s*])\*(?!\*)/g,
     del: /~~(?=\S)([\s\S]+?)(?<=\S)~~/g,
-    mark: /==(?=\S)([\s\S]+?)(?<=\S)==/g,
+    mark: /==(?=\S)([\s\S]+?)(?<=\S)==(?:\{([ypgbo])\})?/g,
     cloze: /\{\{([\s\S]+?)\}\}/g,
   };
   const RE_TERM_POS = /^(\s*)([^\s`].{0,58}?)(\s+::\s+|\s*：：\s*)(\S.*)$/; // 用語行（RE_TERM と同じ規則で、位置も取る）
@@ -193,6 +193,15 @@
     });
     const marks = [[RX.bold, 2, { tagName: 'strong' }], [RX.em, 1, { tagName: 'em' }], [RX.del, 2, { tagName: 'del' }], [RX.mark, 2, { tagName: 'mark' }], [RX.cloze, 2, { class: 'cloze' }]];
     for (const [re, n, spec] of marks) {
+      if (re === RX.mark) { // マーカー：閉じの == のあとの {p} などの色の印も、記号として扱う（カーソルがあるときだけ見える）
+        find(re).forEach((m) => {
+          const suf = m[2] ? 3 : 0, a = m.index, b = a + m[0].length, t = touched(a, b);
+          out.push(Decoration.mark(m[2] && m[2] !== 'y' ? { tagName: 'mark', class: 'mk-' + m[2] } : spec).range(base + a + 2, base + b - 2 - suf));
+          syn(a, a + 2, t); syn(b - 2 - suf, b, t);
+          mask(a, a + 2); mask(b - 2 - suf, b);
+        });
+        continue;
+      }
       find(re).forEach((m) => { const [a, b] = wrap(m, n, n, spec); mask(a, a + n); mask(b - n, b); });
     }
   }

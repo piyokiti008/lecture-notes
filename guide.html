@@ -1,0 +1,454 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'self'; style-src 'self'; img-src 'self' data:; base-uri 'none'; form-action 'none'; frame-src 'none'; object-src 'none'">
+<meta name="referrer" content="no-referrer">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="description" content="講義ノートの使い方を、画面の写真つきで説明します。印を付けて書くだけで試験対策プリントを作る流れ、友達とノートを共有する「棚」、AI（Gemini・Ollama）の設定まで。">
+<script src="js/frameguard.js"></script>
+<title>使い方（画像つき）｜講義ノート</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='8' fill='%232f5bea'/%3E%3Cpath d='M9 8h11a3 3 0 0 1 3 3v13H12a3 3 0 0 1-3-3V8z' fill='none' stroke='white' stroke-width='2'/%3E%3C/svg%3E">
+<link rel="stylesheet" href="css/shelf.css">
+<link rel="stylesheet" href="css/guide.css">
+</head>
+<body>
+<main class="gd-app" id="top">
+<header class="sh-head"><a class="sh-title" href="index.html">講義ノート</a>
+<nav class="gd-top" aria-label="移動"><a href="index.html">アプリを開く</a><a href="shelf.html">棚を開く</a></nav></header>
+
+<h1 class="sh-h">使い方（画像つき）</h1>
+<p class="sh-lead">講義ノートは、授業のメモに「印」を付けるだけで、試験の前に、まとめ・穴埋め・一問一答・用語テストのプリントを作れる、無料のノートです。ここでは、画面の写真を見ながら、使い方を説明します。</p>
+<p class="sh-lead">写真の中の <span class="gd-n">1</span><span class="gd-n">2</span><span class="gd-n">3</span> の番号は、すぐ下の説明の番号と同じです。写真をクリックすると、大きく開きます。</p>
+
+<nav class="gd-toc" aria-label="目次">
+<a href="#first"><b>1. はじめて使う</b><span>印を付けて書き、試験対策プリントを作るまで</span></a>
+<a href="#shelf"><b>2. 棚で、友達と共有する</b><span>アカウント・参加・投稿・管理者の画面</span></a>
+<a href="#ai"><b>3. AI を使えるようにする</b><span>Gemini・Ollama・ブラウザの中。できること</span></a>
+<a href="#faq"><b>4. 困ったとき</b><span>よくある質問</span></a>
+</nav>
+
+<!-- ============================ 1. はじめて使う ============================ -->
+<section class="gd-sec" id="first">
+<h2>1. はじめて使う：印を付けて書き、試験対策プリントを作る</h2>
+<p class="gd-lead">この流れは、AI を使いません。ノートを書いて印を付けるだけで、プリントができます。</p>
+
+<div class="gd-step" id="first-1">
+<h3><span class="gd-no">手順 1</span>開いて、サンプルで試す</h3>
+<figure class="gd-fig small"><a href="img/guide/first-start.webp" target="_blank" rel="noopener"><img src="img/guide/first-start.webp" width="506" height="572" alt="はじめて開いたときの画面。「講義ノートへようこそ」と、教科を追加するボタン、サンプルで試すボタンが出ている" decoding="async"></a>
+<figcaption>はじめて開いたときの画面</figcaption></figure>
+<ol class="gd-callouts">
+<li><span class="gd-n">1</span><b>サンプルで試す</b>：教科・ノート・考査の見本が入ります。まずは、これで画面の動きを見るのがおすすめです。不要になったら、教科ごと削除できます。</li>
+<li><span class="gd-n">2</span><b>教科を追加</b>：自分のノートを始めるときに押します。教科の名前と色を決めます。</li>
+</ol>
+<div class="gd-tip"><b>保存について</b>ノートは、まず、このブラウザの中に保存されます。ブラウザの「閲覧データ（サイトデータ）」を消すと、ノートも消えます。左下の「ログイン（自動保存）」で Google にログインすると、自分の Google ドライブにも自動で保存されます。メニューの「バックアップ」で、ファイルに書き出すこともできます。</div>
+</div>
+
+<div class="gd-step" id="first-2">
+<h3><span class="gd-no">手順 2</span>画面の見かた</h3>
+<figure class="gd-fig"><a href="img/guide/first-screen.webp" target="_blank" rel="noopener"><img src="img/guide/first-screen.webp" width="1280" height="800" alt="パソコンの画面。左に「ノート」「考査対策」と教科の一覧、真ん中に単元とノートの一覧、右にノートを書く場所が並んでいる" decoding="async" loading="lazy"></a>
+<figcaption>パソコンの画面（サンプルを入れたところ）</figcaption></figure>
+<ol class="gd-callouts">
+<li><span class="gd-n">1</span><b>左</b>：「ノート」と「考査対策」の切り替え、教科の一覧。いちばん下に、「ログイン（自動保存）」と「メニュー」があります。</li>
+<li><span class="gd-n">2</span><b>真ん中</b>：選んだ教科の、単元とノートの一覧。「新しいノート」「単元」のボタンと、検索の欄があります。</li>
+<li><span class="gd-n">3</span><b>右</b>：ノートを書く場所。上に、タイトル・日付・単元・重要度（★）・「要復習」、その下に、書式のボタンが並びます。</li>
+</ol>
+</div>
+
+<div class="gd-step" id="first-3">
+<h3><span class="gd-no">手順 3</span>印を付けて書く</h3>
+<p>ふつうの文章に、次の「印」を付けるだけです。この印を、アプリが集めて、プリントにします。</p>
+<div class="gd-scroll"><table class="gd-tbl">
+<thead><tr><th>書き方</th><th>できあがり</th><th>プリントでの使われ方</th></tr></thead>
+<tbody>
+<tr><td><code>==重要な語==</code></td><td>黄色のマーカー</td><td>「重要ポイント」に自動で集まる</td></tr>
+<tr><td><code>{{答え}}</code></td><td>点線の下線がついた答え</td><td>穴埋めプリントの空欄 (1)(2)… になる</td></tr>
+<tr><td><code>用語 :: 説明</code></td><td>用語（青）と説明</td><td>用語集・用語テストになる</td></tr>
+<tr><td><code>Q: 問い</code><br><code>A: 答え</code></td><td>Q と A のカード</td><td>一問一答プリントになる</td></tr>
+<tr><td><code>## 見出し</code>　<code>- 箇条書き</code>　<code>**太字**</code></td><td>ふつうの書式</td><td>ノート全体・まとめに使われる</td></tr>
+</tbody></table></div>
+<p>左の文字が書いたもの、右が出来上がりです。（これは、設定で「従来の分割表示」にしたときの画面です。ふだんは、次の写真のように、書いたその場で変わります。）</p>
+<figure class="gd-fig"><a href="img/guide/first-marks.webp" target="_blank" rel="noopener"><img src="img/guide/first-marks.webp" width="794" height="569" alt="左に書いた文字（==光合成==、{{葉緑体}}、クロロフィル :: …、Q: …、A: …）、右にその出来上がり（黄色のマーカー、点線の穴埋め、用語、Q と A のカード）が並んでいる" decoding="async" loading="lazy"></a>
+<figcaption>左が書いた文字、右が出来上がり</figcaption></figure>
+<ol class="gd-callouts">
+<li><span class="gd-n">1</span><code>==光合成==</code> → 重要マーカー</li>
+<li><span class="gd-n">2</span><code>{{葉緑体}}</code> → 穴埋めの答え</li>
+<li><span class="gd-n">3</span><code>クロロフィル :: 光を吸収する緑色の色素</code> → 用語</li>
+<li><span class="gd-n">4</span><code>Q:</code> と <code>A:</code> → 一問一答</li>
+</ol>
+
+<p><b>書いたその場で、見た目が変わります。</b>「==」や「{{」などの記号は、書き終えた瞬間に、完成した見た目になります。<b>カーソルがある行だけ、記号が見えます</b>（書き直せるように）。</p>
+<figure class="gd-fig"><a href="img/guide/first-live.webp" target="_blank" rel="noopener"><img src="img/guide/first-live.webp" width="766" height="476" alt="ノートの書く場所。カーソルのある行だけ「==光合成==」の記号が見え、ほかの行は完成した見た目になっている。上にボタンの列がある" decoding="async" loading="lazy"></a>
+<figcaption>ふだんの書く場所（書いたその場で変わる）</figcaption></figure>
+<ol class="gd-callouts">
+<li><span class="gd-n">1</span>カーソルのある行：記号が見えて、書き直せます。</li>
+<li><span class="gd-n">2</span>ほかの行：完成した見た目になります。</li>
+<li><span class="gd-n">3</span>ボタンでも付けられます：「重要」「穴埋め」「用語」「Q&amp;A」「表」「数式」「画像」など。「マーカー」ボタンでは、色も選べます。</li>
+</ol>
+<div class="gd-tip"><b>入力のコツ</b><ul>
+<li><code>Q:</code> の行で Enter を押すと、次の行に <code>A:</code> が自動で入ります。</li>
+<li>Ctrl+B で太字、Ctrl+E で重要マークになります。</li>
+<li>画像は、Ctrl+V で貼り付けられます（スクリーンショットも使えます）。</li>
+<li>「暗記モード」のボタンを押すと、穴埋めの答えが隠れます。クリックすると、1つずつ見られます。</li>
+</ul></div>
+</div>
+
+<div class="gd-step" id="first-4">
+<h3><span class="gd-no">手順 4</span>考査を作る</h3>
+<p>「考査」は、このアプリでは、試験の対策のまとまりです。試験ごとに、範囲（単元）を選んで、プリントを作ります。</p>
+<div class="gd-pair two">
+<figure class="gd-fig small"><a href="img/guide/first-exam-list.webp" target="_blank" rel="noopener"><img src="img/guide/first-exam-list.webp" width="247" height="262" alt="左のメニュー。「考査対策」が選ばれ、「考査」の横に追加ボタン、その下に「サンプル考査」とあと何日かが出ている" decoding="async" loading="lazy"></a></figure>
+<ol class="gd-callouts">
+<li><span class="gd-n">1</span>左の「<b>考査対策</b>」を押します。</li>
+<li><span class="gd-n">2</span>「考査」の横の <b>＋</b> を押します。</li>
+<li><span class="gd-n">3</span>作った考査が並びます。試験の日を入れると、「あと14日」のように、残りの日数が出ます。</li>
+</ol>
+</div>
+<figure class="gd-fig dlg"><a href="img/guide/first-exam-dialog.webp" target="_blank" rel="noopener"><img src="img/guide/first-exam-dialog.webp" width="480" height="322" alt="「考査を作成」の画面。考査名、日付（任意）、「すべての単元を範囲に含める」のチェックがある" decoding="async" loading="lazy"></a>
+<figcaption>「考査を作成」の画面</figcaption></figure>
+<ol class="gd-callouts">
+<li><span class="gd-n">1</span><b>考査名</b>（例：前期 生物学 期末）</li>
+<li><span class="gd-n">2</span><b>日付</b>（入れなくても作れます）</li>
+<li><span class="gd-n">3</span><b>「すべての単元を範囲に含める」</b>：チェックを入れると、全部の単元が、最初から範囲に入ります。あとで変えられます。</li>
+</ol>
+</div>
+
+<div class="gd-step" id="first-5">
+<h3><span class="gd-no">手順 5</span>範囲を選ぶ</h3>
+<figure class="gd-fig"><a href="img/guide/first-range.webp" target="_blank" rel="noopener"><img src="img/guide/first-range.webp" width="1280" height="800" alt="考査の画面。左に範囲（単元）のチェック一覧、右上に単元・ノート・重要ポイント・用語・Q&A・穴埋めの数、その上に「単元まとめ」「プリント作成」のタブがある" decoding="async" loading="lazy"></a>
+<figcaption>考査の画面</figcaption></figure>
+<ol class="gd-callouts">
+<li><span class="gd-n">1</span><b>範囲（単元）</b>：試験に出る単元に、チェックを入れます。「全選択」「全解除」もあります。いちばん下の「対象にするノート」で、「すべてのノート」「重要度 ★★ 以上」「★★★ のみ」「要復習のみ」に絞れます。</li>
+<li><span class="gd-n">2</span>選んだ範囲に、重要ポイント・用語・Q&amp;A・穴埋めが、いくつあるかが出ます。</li>
+<li><span class="gd-n">3</span>2つのタブ：「<b>単元まとめ</b>」と「<b>プリント作成</b>」を切り替えます。</li>
+</ol>
+</div>
+
+<div class="gd-step" id="first-6">
+<h3><span class="gd-no">手順 6</span>単元まとめ（自分の言葉で整える）</h3>
+<p>単元のところを開くと、その単元の「まとめ」を書けます。</p>
+<figure class="gd-fig"><a href="img/guide/first-summary.webp" target="_blank" rel="noopener"><img src="img/guide/first-summary.webp" width="740" height="456" alt="単元「光合成」のまとめ。左にまとめを書く欄、右にそのプレビュー。上に「ノートから下書きを作る」ボタンがある" decoding="async" loading="lazy"></a>
+<figcaption>単元「光合成」のまとめ</figcaption></figure>
+<ol class="gd-callouts">
+<li><span class="gd-n">1</span><b>ノートから下書きを作る</b>：ノートの、重要ポイントと用語が、下書きとして入ります。</li>
+<li><span class="gd-n">2</span>自分の言葉に直します。</li>
+<li><span class="gd-n">3</span>右が、プリントに載る見た目（プレビュー）です。</li>
+</ol>
+<div class="gd-tip"><b>書かなくても大丈夫です</b>まとめを空のままにしても、ノートの、重要ポイントと用語が、自動でプリントに載ります。上の「空のまとめに下書きを一括作成」で、全部の単元に、まとめて下書きを作ることもできます。</div>
+</div>
+
+<div class="gd-step" id="first-7">
+<h3><span class="gd-no">手順 7</span>プリントを作る</h3>
+<p>「プリント作成」のタブを開きます。</p>
+<figure class="gd-fig dlg"><a href="img/guide/first-print.webp" target="_blank" rel="noopener"><img src="img/guide/first-print.webp" width="766" height="952" alt="プリント作成の画面。左にプリントの種類と設定、右に穴埋め問題のプリントのプレビュー" decoding="async" loading="lazy"></a>
+<figcaption>プリント作成の画面（穴埋め問題を選んだところ）</figcaption></figure>
+<ol class="gd-callouts">
+<li><span class="gd-n">1</span><b>プリントの種類</b>
+<ul>
+<li>まとめ：単元ごとの要点</li>
+<li>穴埋め問題：<code>{{ }}</code> が空欄になる</li>
+<li>一問一答：<code>Q:</code> と <code>A:</code></li>
+<li>用語テスト：<code>用語 :: 説明</code></li>
+<li>AIおまかせ：AI を使います（→ <a href="#ai">3. AI を使えるようにする</a>）</li>
+</ul></li>
+<li><span class="gd-n">2</span><b>解答の出し方</b>：「問題のみ」「巻末に解答」「答えも表示」から選びます。</li>
+<li><span class="gd-n">3</span><b>印刷 / PDFに保存</b>：印刷の画面で、送信先を「PDFに保存」にすると、PDF になります。ほかに、文字の大きさ、段組み、用紙（A4・B5・A5）、改ページも選べます。</li>
+<li><span class="gd-n">4</span>右が、プリントのプレビューです。表示の大きさ（50%・75%・100%）を選べます。</li>
+</ol>
+<div class="gd-note"><b>穴埋めが空欄にならないとき</b><code>{{ }}</code> で、答えを囲んでいるか、確かめてください。「穴埋めのある段落だけ抜粋」にチェックが入っていると、<code>{{ }}</code> のない段落は、プリントに出ません。</div>
+</div>
+</section>
+
+<!-- ============================ 2. 棚 ============================ -->
+<section class="gd-sec" id="shelf">
+<h2>2. 棚で、友達とノートを共有する</h2>
+<p class="gd-lead">「棚」は、友達どうしで、ノートや資料を、フォルダごとに整理して見せ合う場所です。グループの会話は LINE などで行い、棚は、整理して保管するために使います。</p>
+<div class="gd-note"><b>先に知っておいてください</b><ul>
+<li>棚は、LINE の中のブラウザで開くことを想定して作ってあります（「見る・いいね」は、そこでできる設計です）。ただし、LINE の中での表示は、まだ十分に確かめられていません。うまく表示されないときは、Safari または Chrome で開いてください。</li>
+<li>「投稿」には Google のログインが要ります。LINE の中のブラウザでは、Google にログインできないので、<b>Safari または Chrome</b> で開いてください。</li>
+<li>棚のアカウント（ログインIDとパスワード）は、アプリ本体の Google ログインとは<b>別</b>です。</li>
+<li><b>パスワードを忘れると、復旧できません。</b>メモなどに残しておいてください。</li>
+</ul></div>
+
+<div class="gd-step" id="shelf-1">
+<h3><span class="gd-no">手順 1</span>アカウントを作る</h3>
+<p>棚を開く（メニューの「棚を開く」、または、友達から届いたリンク）と、まず、ログインの画面が出ます。はじめてのときは、「アカウントを作る」を押します。</p>
+<div class="gd-pair phones">
+<figure class="gd-fig phone"><a href="img/guide/shelf-login.webp" target="_blank" rel="noopener"><img src="img/guide/shelf-login.webp" width="488" height="905" alt="棚のログイン画面。ログインID、パスワード、ログインのボタン、アカウントを作るリンクがある" decoding="async" loading="lazy"></a>
+<figcaption>ログインの画面</figcaption></figure>
+<figure class="gd-fig phone"><a href="img/guide/shelf-signup.webp" target="_blank" rel="noopener"><img src="img/guide/shelf-signup.webp" width="488" height="988" alt="アカウントを作る画面。ログインID、表示名、パスワードの入力欄と、パスワードを忘れると復旧できない旨の注意がある" decoding="async" loading="lazy"></a>
+<figcaption>アカウントを作る画面</figcaption></figure>
+</div>
+<p><b>ログインの画面</b></p>
+<ol class="gd-callouts">
+<li><span class="gd-n">1</span>ログインID</li>
+<li><span class="gd-n">2</span>パスワード</li>
+<li><span class="gd-n">3</span>はじめての方は、「アカウントを作る」</li>
+</ol>
+<p><b>アカウントを作る画面</b></p>
+<ol class="gd-callouts">
+<li><span class="gd-n">1</span><b>ログインID</b>：半角の英数字と「_」「-」で、3〜20文字。<b>あとから変えられません。</b></li>
+<li><span class="gd-n">2</span><b>表示名</b>：棚の中で、ほかの人に見える名前です。「運営」を含む名前は使えません。</li>
+<li><span class="gd-n">3</span><b>パスワード</b>：8文字以上。</li>
+<li><span class="gd-n">4</span>注意：パスワードを忘れると、復旧できません。</li>
+</ol>
+<p>「この端末でログインを保つ」には、初めからチェックが入っています。次から、ログインが省けます。ほかの人も使う端末では、チェックを外してください。</p>
+</div>
+
+<div class="gd-step" id="shelf-2">
+<h3><span class="gd-no">手順 2</span>棚を作る（管理者になる）</h3>
+<p>棚を作った人が、その棚の「管理者」になります。1人が作れる棚は、5つまでです。</p>
+<div class="gd-pair phones">
+<figure class="gd-fig phone"><a href="img/guide/shelf-home.webp" target="_blank" rel="noopener"><img src="img/guide/shelf-home.webp" width="488" height="581" alt="棚の一覧の画面。まだ棚がなく、招待コードで参加するボタンと、棚を作るボタンがある" decoding="async" loading="lazy"></a>
+<figcaption>棚の一覧</figcaption></figure>
+<figure class="gd-fig phone"><a href="img/guide/shelf-new.webp" target="_blank" rel="noopener"><img src="img/guide/shelf-new.webp" width="488" height="886" alt="棚を作る画面。棚の名前と、棚のルールの入力欄、作るボタンがある" decoding="async" loading="lazy"></a>
+<figcaption>棚を作る画面</figcaption></figure>
+</div>
+<ol class="gd-callouts">
+<li><span class="gd-n">1</span>棚の一覧で、「<b>棚を作る</b>」を押します。（「招待コードで参加」は、友達の棚に入るときです。）</li>
+<li><span class="gd-n">2</span><b>棚の名前</b>（例：統計学 2班）と、<b>棚のルール</b>を入れます。ルールは、参加するとき、全員に表示されます。強制力はありませんが、違反があった場合は、管理者が対応します。</li>
+<li><span class="gd-n">3</span>「作る」を押します。</li>
+</ol>
+<figure class="gd-fig phone"><a href="img/guide/shelf-created.webp" target="_blank" rel="noopener"><img src="img/guide/shelf-created.webp" width="488" height="614" alt="棚を作りましたの画面。12文字の招待コードと、コードをコピー、LINEに貼る文面をコピー、棚を開くのボタンがある" decoding="async" loading="lazy"></a>
+<figcaption>棚ができたところ</figcaption></figure>
+<ol class="gd-callouts">
+<li><span class="gd-n">1</span><b>招待コード</b>（12文字。4文字ずつ区切られています）。友達に伝えると、参加できます。</li>
+<li><span class="gd-n">2</span>「<b>LINE に貼る文面をコピー</b>」：LINE のグループに貼れば、そこから参加できます。</li>
+<li><span class="gd-n">3</span>「棚を開く」で、棚の中に入ります。</li>
+</ol>
+</div>
+
+<div class="gd-step" id="shelf-3">
+<h3><span class="gd-no">手順 3</span>棚に参加する</h3>
+<p>友達から、招待コード（またはリンク）をもらったら、棚の一覧の「招待コードで参加」を押します。先に、手順 1 のアカウントが必要です。</p>
+<div class="gd-pair phones">
+<figure class="gd-fig phone"><a href="img/guide/shelf-join-code.webp" target="_blank" rel="noopener"><img src="img/guide/shelf-join-code.webp" width="488" height="495" alt="招待コードを入れる画面。招待コードの入力欄と、次へのボタンがある" decoding="async" loading="lazy"></a>
+<figcaption>招待コードを入れる</figcaption></figure>
+<figure class="gd-fig phone"><a href="img/guide/shelf-join-agree.webp" target="_blank" rel="noopener"><img src="img/guide/shelf-join-agree.webp" width="488" height="825" alt="棚に参加する画面。棚のルールが表示され、ルールを読み、同意するのチェックと、同意して参加のボタンがある" decoding="async" loading="lazy"></a>
+<figcaption>ルールを読んで、参加する</figcaption></figure>
+</div>
+<ol class="gd-callouts">
+<li><span class="gd-n">1</span>招待コードを入れて、「次へ」を押します。</li>
+<li><span class="gd-n">2</span>棚の<b>ルール</b>を読みます。</li>
+<li><span class="gd-n">3</span>「ルールを読み、同意する」にチェックを入れて、「<b>同意して参加</b>」を押します。</li>
+</ol>
+<div class="gd-note"><b>いいねについて</b>いいねの数は、1週間に1回、管理者の端末で集計されます（自分の投稿への分は数えません）。<b>誰が何にいいねしたかは、棚の管理者に見えます。</b></div>
+</div>
+
+<div class="gd-step" id="shelf-4">
+<h3><span class="gd-no">手順 4</span>棚の中を見る・投稿を開く</h3>
+<figure class="gd-fig phone"><a href="img/guide/shelf-inside.webp" target="_blank" rel="noopener"><img src="img/guide/shelf-inside.webp" width="488" height="1375" alt="棚の中の画面。フォルダが3つ、その下に、ノート、PDF、Wordの投稿が並び、いいねの数と人気の印、編集OKや編集しないでの札が付いている" decoding="async" loading="lazy"></a>
+<figcaption>棚の中（フォルダと投稿の一覧）</figcaption></figure>
+<ol class="gd-callouts">
+<li><span class="gd-n">1</span><b>フォルダ</b>：「開く」で、中のフォルダや投稿が見られます。授業や単元ごとに、整理します。</li>
+<li><span class="gd-n">2</span><b>投稿</b>：種類（ノート・PDF・Word など）、大きさ、日付、投稿者が出ます。「<b>編集OK</b>」「<b>編集しないで</b>」の札は、投稿した人の希望です。♥ は、いいねの数。いいねが多い投稿には、「人気」の印が付きます。</li>
+<li><span class="gd-n">3</span><b>並べ替え</b>：新着順・名前順・いいね順。</li>
+<li><span class="gd-n">4</span>「<b>ここに投稿する</b>」：このフォルダに投稿するときに押します（Safari または Chrome で開きます）。</li>
+</ol>
+<p>投稿の名前を押すと、中身が開きます。</p>
+<figure class="gd-fig phone"><a href="img/guide/shelf-post.webp" target="_blank" rel="noopener"><img src="img/guide/shelf-post.webp" width="488" height="1375" alt="投稿を開いた画面。上に投稿のタイトルと種類、その下にファイルのプレビュー枠、いいねのボタン、ダウンロードのリンクがある" decoding="async" loading="lazy"></a>
+<figcaption>投稿を開いたところ</figcaption></figure>
+<ol class="gd-callouts">
+<li><span class="gd-n">1</span><b>プレビュー</b>：その場で、中身を見られます。</li>
+<li><span class="gd-n">2</span><b>♡ いいね</b></li>
+<li><span class="gd-n">3</span><b>ダウンロード</b>／「ドライブで開く」：プレビューが出ないとき、表示が崩れるときに使います。</li>
+</ol>
+<ul>
+<li>「編集しないでほしい」の投稿は、<b>個人で使うだけ</b>にしてください。（技術では止められないので、お願いです。）</li>
+<li>問題のある投稿は、投稿のページの「この投稿を通報する」で、管理者に知らせられます。</li>
+<li>「このアプリのノート」の形式で投稿されたものは、「自分のノートに取り込む」で、自分のアプリに取り込めます。「編集OK」のノートなら、直して、自分の版（派生版）として、同じフォルダに出せます。</li>
+</ul>
+</div>
+
+<div class="gd-step" id="shelf-5">
+<h3><span class="gd-no">手順 5</span>棚に投稿する</h3>
+<p>投稿は、アプリのメニューの「<b>棚に投稿</b>」から行います（または、棚のフォルダの「ここに投稿する」）。<b>Safari または Chrome</b> で開いてください。</p>
+<ol>
+<li>Google にログインします（自分のドライブにファイルを置くため）。</li>
+<li>棚のログインID・パスワードを入れます。</li>
+<li>投稿する棚と、フォルダを選びます。</li>
+<li>ファイル（または、このアプリのノート）と、タイトルを選びます。</li>
+<li>「編集の扱い」を選び、棚のルールに同意して、「投稿する」を押します。</li>
+</ol>
+<figure class="gd-fig dlg"><a href="img/guide/shelf-post-login.webp" target="_blank" rel="noopener"><img src="img/guide/shelf-post-login.webp" width="776" height="983" alt="棚に投稿する画面。棚、投稿先のフォルダ、ファイル、タイトル、編集の扱い、棚のルール、ルールに同意して投稿するのチェック、投稿するボタンがある" decoding="async" loading="lazy"></a>
+<figcaption>「棚に投稿」の画面</figcaption></figure>
+<ol class="gd-callouts">
+<li><span class="gd-n">1</span><b>棚</b>：投稿する棚を選びます。</li>
+<li><span class="gd-n">2</span><b>ファイル</b>：Word・Excel・PowerPoint・PDF（20MB まで）。画像・動画・実行ファイル・マクロ付きのファイルは、投稿できません。</li>
+<li><span class="gd-n">3</span><b>編集の扱い</b>：「編集しないでほしい（取り込みは、個人利用だけ）」か、「編集OK（ほかの人が取り込んで直し、自分の版を出してよい）」。</li>
+<li><span class="gd-n">4</span>棚のルールに<b>同意</b>します。</li>
+<li><span class="gd-n">5</span><b>投稿する</b></li>
+</ol>
+<div class="gd-note"><b>大事な注意</b><ul>
+<li>ファイルは、あなたの Google ドライブの「講義ノート」フォルダに保存され、<b>リンクを知っている人が見られる状態</b>になります。消すときは、「棚に投稿」の「自分の投稿の管理」から。ドライブからも消えて、見られなくなります。</li>
+<li><b>他の人が作った資料の、無断の転載はできません</b>（講義の配布資料・過去問・教科書・有料の教材など）。投稿できるのは、自分が作ったもの、または、転載してよいと確認できたものだけです。</li>
+</ul></div>
+</div>
+
+<div class="gd-step" id="shelf-6">
+<h3><span class="gd-no">手順 6</span>管理者の画面</h3>
+<p>管理者は、棚の画面の「管理者の画面」から、棚の世話ができます。</p>
+<figure class="gd-fig phone"><a href="img/guide/shelf-admin.webp" target="_blank" rel="noopener"><img src="img/guide/shelf-admin.webp" width="488" height="1651" alt="管理者の画面。招待コードとコピーのボタン、メンバーの一覧と締め出すボタン、通報された投稿の一覧がある" decoding="async" loading="lazy"></a>
+<figcaption>管理者の画面</figcaption></figure>
+<ol class="gd-callouts">
+<li><span class="gd-n">1</span><b>招待コード</b>：コピーしたり、「新しいコードに作り直す」ができます。</li>
+<li><span class="gd-n">2</span><b>メンバー</b>：問題のある人は、「締め出す」。締め出された人は、棚の中身を見られず、投稿もできなくなります。解除もできます。</li>
+<li><span class="gd-n">3</span><b>通報された投稿</b>：「投稿を見る」「投稿を削除」「通報だけ消す」から選びます。</li>
+</ol>
+<p>このほかに、棚の名前とルールの変更、棚の削除ができます。</p>
+</div>
+<p class="gd-lead">利用の決まりや、運営が見られる情報は、<a href="terms.html">棚の利用規約・プライバシー</a>に書いてあります。</p>
+</section>
+
+<!-- ============================ 3. AI ============================ -->
+<section class="gd-sec" id="ai">
+<h2>3. AI を使えるようにする</h2>
+<p class="gd-lead">プリント（まとめ・穴埋め・一問一答・用語テスト）は、AI を使わなくても作れます。AI は、「教材からノートを作る」「図解を作る」「AIおまかせでプリントを作る」ときに使います。</p>
+<div class="gd-note"><b>AI の答えは、間違うことがあります</b>数値・固有名詞・式は、必ず、元の教材や授業の内容と見比べてください。自信のない所は、「（要確認）」と書かれることがあります。</div>
+
+<div class="gd-step" id="ai-1">
+<h3><span class="gd-no">手順 1</span>設定を開く</h3>
+<figure class="gd-fig small"><a href="img/guide/ai-menu.webp" target="_blank" rel="noopener"><img src="img/guide/ai-menu.webp" width="440" height="496" alt="メニューの一覧。ログイン、棚に投稿、棚を開く、AIアシスタント、使い方（画像つき）、書き方ガイド、バックアップ、フィードバックが並んでいる" decoding="async" loading="lazy"></a>
+<figcaption>メニュー</figcaption></figure>
+<ol class="gd-callouts">
+<li><span class="gd-n">1</span>左下の「メニュー」を開き、「<b>AIアシスタント</b>」を押します。</li>
+</ol>
+</div>
+
+<div class="gd-step" id="ai-2">
+<h3><span class="gd-no">手順 2</span>3つの中から選ぶ</h3>
+<figure class="gd-fig dlg"><a href="img/guide/ai-choose.webp" target="_blank" rel="noopener"><img src="img/guide/ai-choose.webp" width="772" height="892" alt="AIアシスタントの設定画面。Google Gemini、このPCで動かす（Ollama）、このブラウザの中で動かす、の3つの選び方が並んでいる" decoding="async" loading="lazy"></a>
+<figcaption>AI の選び方</figcaption></figure>
+<ol class="gd-callouts">
+<li><span class="gd-n">1</span><b>Google Gemini</b></li>
+<li><span class="gd-n">2</span><b>このPCで動かす（Ollama）</b></li>
+<li><span class="gd-n">3</span><b>このブラウザの中で動かす</b></li>
+</ol>
+<div class="gd-scroll"><table class="gd-tbl">
+<thead><tr><th></th><th>1. Gemini</th><th>2. Ollama</th><th>3. ブラウザの中</th></tr></thead>
+<tbody>
+<tr><th>料金</th><td>無料（1日に使える回数に上限）</td><td>無料</td><td>無料</td></tr>
+<tr><th>準備</th><td>インストール不要。Google で API キーを作って、貼り付ける</td><td>Ollama を入れる。最初に1回、案内つきの設定（3〜7GB ほどの AI をダウンロード）</td><td>インストール不要。AI（約 500MB）を、最初に1回だけ読み込む（<b>いまは準備中</b>）</td></tr>
+<tr><th>向く端末</th><td>スマホ・パソコン</td><td>パソコン</td><td>パソコン（GPU の WebGPU が必要）</td></tr>
+<tr><th>内容の行き先</th><td>Google に送られる。無料枠では、Google の製品改善に使われることがある</td><td>PC の外に出ない</td><td>ブラウザの中だけ</td></tr>
+<tr><th>できること</th><td>教材からノート（PDF・画像・音声・動画も読める）・図解・AIおまかせ</td><td>教材からノート・図解・AIおまかせ（速さは PC しだい）</td><td>使えるようになったときは、図解のみ（実験）</td></tr>
+</tbody></table></div>
+<div class="gd-tip"><b>迷ったら</b>スマホなら Gemini です。パソコンでも、いちばん手軽なのは Gemini です。個人情報や機密の内容を扱うときは、内容が PC の外に出ない、Ollama を選んでください。</div>
+</div>
+
+<div class="gd-step" id="ai-3">
+<h3><span class="gd-no">手順 3A</span>Gemini を使う場合：キーを貼り付ける</h3>
+<figure class="gd-fig dlg"><a href="img/guide/ai-gemini.webp" target="_blank" rel="noopener"><img src="img/guide/ai-gemini.webp" width="772" height="892" alt="Geminiの設定。Google AI Studio を開くボタン、APIキーを貼り付ける欄、保存ボタン、使うモデルの欄、接続テストのボタンがある" decoding="async" loading="lazy"></a>
+<figcaption>Gemini の設定</figcaption></figure>
+<ol class="gd-callouts">
+<li><span class="gd-n">1</span>「<b>Google AI Studio を開く</b>」を押し、Google アカウントで、<b>API キー</b>を作ります（クレジットカードは要りません）。Google の画面の案内に従ってください。</li>
+<li><span class="gd-n">2</span>できたキーを、この欄に貼り付けます。</li>
+<li><span class="gd-n">3</span>「<b>保存</b>」を押します。そのあと「接続テスト」で、つながるか確かめられます。</li>
+</ol>
+<ul>
+<li>キーは、<b>このブラウザの中だけ</b>に保存されます（ドライブには同期されず、運営にも届きません）。他の人が使うパソコンでは、「このブラウザにキーを記憶する」を<b>オフ</b>にしてください。</li>
+<li>無料枠には、使える回数の上限があります。上限に達したら、少し待つか、名前に「lite」の付いたモデルに切り替えてください。</li>
+<li>無料枠では、送った内容が、Google の製品改善に使われることがあります。個人情報や機密は送らないでください。</li>
+</ul>
+</div>
+
+<div class="gd-step" id="ai-4">
+<h3><span class="gd-no">手順 3B</span>Ollama を使う場合：3つの手順（パソコン）</h3>
+<p>最初に1回だけ、設定が要ります。画面の案内に沿って、上から順に進めます。できたところから、画面が自動で進みます。</p>
+<figure class="gd-fig dlg"><a href="img/guide/ai-ollama-1.webp" target="_blank" rel="noopener"><img src="img/guide/ai-ollama-1.webp" width="772" height="892" alt="Ollamaの案内の1つ目。Ollamaが見つかりませんの表示と、Ollamaをダウンロードするボタンがある" decoding="async" loading="lazy"></a>
+<figcaption>① Ollama を入れる</figcaption></figure>
+<ol class="gd-callouts">
+<li><span class="gd-n">1</span>「<b>Ollama をダウンロード</b>」から、Ollama を入れて、起動します。</li>
+</ol>
+<figure class="gd-fig dlg"><a href="img/guide/ai-ollama-2.webp" target="_blank" rel="noopener"><img src="img/guide/ai-ollama-2.webp" width="772" height="892" alt="Ollamaの案内の2つ目。このサイトからの接続を許可する手順。コマンドをコピーするボタンと、Windowsキー＋R、Ctrl＋V、Enterの手順が書かれている" decoding="async" loading="lazy"></a>
+<figcaption>② このサイトからの接続を、許可する</figcaption></figure>
+<ol class="gd-callouts">
+<li><span class="gd-n">1</span>「<b>コマンドをコピー</b>」を押します。次に、キーボードの <b>Windows ＋ R</b> を同時に押し、<b>Ctrl ＋ V</b> で貼り付けて、<b>Enter</b> を押します。黒い画面が一瞬出て、Ollama が自動で再起動します。少し待つと、画面が次に進みます。</li>
+</ol>
+<figure class="gd-fig dlg"><a href="img/guide/ai-ollama-3.webp" target="_blank" rel="noopener"><img src="img/guide/ai-ollama-3.webp" width="772" height="892" alt="Ollamaの案内の3つ目。Ollamaは起動していて、つながっていますの表示と、AIモデルを選ぶ欄がある" decoding="async" loading="lazy"></a>
+<figcaption>③ つながったら、AI を選ぶ</figcaption></figure>
+<ol class="gd-callouts">
+<li><span class="gd-n">1</span>「つながっています」と出たら、成功です。次に、使う AI（モデル）を選んで、ダウンロードします（数 GB あるので、時間がかかります）。</li>
+</ol>
+<ul>
+<li>Windows 以外（Mac など）は、画面の「Windows 以外（または、別の OS）の場合」を開いてください。</li>
+<li>うまくいかないときは、画面の「うまくいかないとき」を開いてください。</li>
+<li>むずかしいと感じたら、画面の下のボタンで、Gemini に切り替えられます。</li>
+</ul>
+</div>
+
+<div class="gd-step" id="ai-5">
+<h3><span class="gd-no">手順 3C</span>ブラウザの中で動かす場合（いまは準備中）</h3>
+<figure class="gd-fig dlg"><a href="img/guide/ai-browser.webp" target="_blank" rel="noopener"><img src="img/guide/ai-browser.webp" width="772" height="892" alt="このブラウザの中で動かす、の設定。この AI は、いま準備中です、と表示され、Gemini か Ollama を使うよう案内している" decoding="async" loading="lazy"></a>
+<figcaption>「このブラウザの中で動かす」を選んだところ</figcaption></figure>
+<ol class="gd-callouts">
+<li><span class="gd-n">1</span>「この AI は、いま<b>準備中</b>です」と出ます。このサイトには、まだ、この AI のファイルを置いていないためです。準備ができしだい、使えるようになります。それまでは、Gemini か Ollama をお使いください。</li>
+</ol>
+<ul>
+<li>使えるようになったときは、AI のファイル（約 510MB）を、最初の1回だけ、ブラウザに読み込みます。そのあとは、ブラウザの中だけで動きます。</li>
+<li>いまのところ、<b>図解を作る機能の実験版</b>になる予定です。教材からノートを作る機能と、プリントの機能は、Gemini か Ollama を使ってください。</li>
+</ul>
+</div>
+
+<div class="gd-step" id="ai-6">
+<h3><span class="gd-no">手順 4</span>AI でできること</h3>
+
+<h4 class="gd-sub" id="ai-materials">(1) 教材から、ノートを作る</h4>
+<p>授業のスライドなどを渡すと、ノートの下書きを作ります。ノートの画面の「教材から AI」ボタン、または、単元まとめの「教材から作る」から開きます。</p>
+<figure class="gd-fig dlg"><a href="img/guide/ai-materials.webp" target="_blank" rel="noopener"><img src="img/guide/ai-materials.webp" width="772" height="755" alt="教材から、まとめを作る画面。ファイルを追加する欄、詳しさ、保存先、生成するボタンがある" decoding="async" loading="lazy"></a>
+<figcaption>教材から、まとめを作る</figcaption></figure>
+<ol class="gd-callouts">
+<li><span class="gd-n">1</span><b>ファイルを追加</b>：PowerPoint・PDF・Word・画像・動画・字幕・テキスト。音声（mp3 など）は、Gemini のときだけ読めます。ファイルは、この端末の中で読み取り、「生成する」を押したときだけ、AI に送られます。</li>
+<li><span class="gd-n">2</span><b>詳しさ</b>：簡潔・標準・詳しい。</li>
+<li><span class="gd-n">3</span><b>保存先</b>：新しいノートとして保存（おすすめ）／単元まとめの末尾に追加／単元まとめを置き換える。</li>
+<li><span class="gd-n">4</span>「<b>生成する</b>」を押します。</li>
+</ol>
+
+<h4 class="gd-sub" id="ai-diagram">(2) 図解を作る</h4>
+<p>AI が作るのは、図の「設計図」（どの項目を、どうつなぐか）だけです。図そのものは、アプリが自動で描きます。描き方（色・形）は、できたあとで、選び直せます。ノートの画面の「図解 AI」ボタンから開きます。</p>
+<figure class="gd-fig dlg"><a href="img/guide/ai-diagram.webp" target="_blank" rel="noopener"><img src="img/guide/ai-diagram.webp" width="772" height="677" alt="図解を作る画面。何を図解するかの入力欄、図の種類の選択、図を作るボタン、できた図が出る場所がある" decoding="async" loading="lazy"></a>
+<figcaption>図解を作る画面</figcaption></figure>
+<ol class="gd-callouts">
+<li><span class="gd-n">1</span><b>何を図解しますか？</b>：文章で書きます。</li>
+<li><span class="gd-n">2</span><b>図の種類</b>：「おまかせ」のほか、下の7種類から選べます。</li>
+<li><span class="gd-n">3</span>「<b>図を作る</b>」を押します。</li>
+<li><span class="gd-n">4</span>できた図が、ここに出ます。気に入ったら、「ノートに挿入」で、ノートに入れます。</li>
+</ol>
+<p>図の種類の見本です（これは、AI を使わず、設計図から、アプリが描いたものです）。</p>
+<figure class="gd-fig"><a href="img/guide/ai-diagram-types.webp" target="_blank" rel="noopener"><img src="img/guide/ai-diagram-types.webp" width="1280" height="1400" alt="図の7つの種類の見本。フローチャート、循環図、階層・分類図、比較表、年表、関係図、ベン図" decoding="async" loading="lazy"></a>
+<figcaption>フローチャート・循環図・階層（分類）図・比較表・年表・関係図・ベン図</figcaption></figure>
+
+<h4 class="gd-sub" id="ai-sheet">(3) プリントの「AIおまかせ」</h4>
+<p>「プリント作成」のタブで、種類に「AIおまかせ」を選ぶと、ほしいプリントを文章で頼めます。</p>
+<figure class="gd-fig dlg"><a href="img/guide/ai-sheet.webp" target="_blank" rel="noopener"><img src="img/guide/ai-sheet.webp" width="766" height="952" alt="プリント作成の画面で、AIおまかせを選んだところ。どんなプリントがほしいかの入力欄と、AIで作成するボタンがある" decoding="async" loading="lazy"></a>
+<figcaption>AIおまかせの画面</figcaption></figure>
+<ol class="gd-callouts">
+<li><span class="gd-n">1</span>種類で「<b>AIおまかせ</b>」を選びます。</li>
+<li><span class="gd-n">2</span><b>どんなプリントがほしいか</b>を、文章で書きます（例：光合成の小テスト。選択式3問と記述式1問で、少し難しめ。解答と解説つき）。難易度や、図解を入れるかも選べます。</li>
+<li><span class="gd-n">3</span>「<b>AI で作成する</b>」を押します。選んだ範囲のノートとまとめが、材料になります。</li>
+</ol>
+</div>
+</section>
+
+<!-- ============================ 4. 困ったとき ============================ -->
+<section class="gd-sec" id="faq">
+<h2>4. 困ったとき</h2>
+<dl class="gd-faq">
+<dt>ノートが消えた／別の端末でも見たい</dt>
+<dd>ノートは、まず、そのブラウザの中に保存されます。ブラウザの閲覧データを消すと、消えます。左下の「ログイン（自動保存）」で Google にログインしておくと、自分のドライブにも保存され、ほかの端末でも、同じアカウントでログインすれば、見られます。メニューの「バックアップ」で、ファイルに書き出すこともできます。</dd>
+<dt>棚のパスワードを忘れた</dt>
+<dd>復旧できません。別のログインIDで、アカウントを作り直してください。</dd>
+<dt>LINE の中で、投稿できない</dt>
+<dd>投稿には Google のログインが要りますが、LINE の中のブラウザでは、Google にログインできません。Safari または Chrome で開いてください。</dd>
+<dt>穴埋めが、プリントに出ない</dt>
+<dd>答えを <code>{{ }}</code> で囲んでいるか、確かめてください。プリント作成の「穴埋めのある段落だけ抜粋」も、確かめてください。</dd>
+<dt>AI が「つながらない」と言う</dt>
+<dd>Gemini：キーが正しいか、「接続テスト」で確かめてください。使える回数の上限に達しているときは、少し待つか、名前に「lite」の付いたモデルに切り替えてください。Ollama：Ollama が起動しているか、手順②の許可が済んでいるかを、設定画面の表示で確かめてください。</dd>
+</dl>
+<p>それでも解決しないときは、メニューの「フィードバック」から、教えてください。</p>
+</section>
+
+<footer class="gd-foot"><a href="#top">ページの先頭へ</a><a href="index.html">アプリを開く</a><a href="shelf.html">棚を開く</a><a href="terms.html">棚の利用規約・プライバシー</a></footer>
+</main>
+</body>
+</html>

@@ -28,10 +28,11 @@
     feedback: I('<path d="M4 5h16v11H8l-4 4z"/>'),
     contrast: I('<circle cx="12" cy="12" r="9"/><path d="M12 3a9 9 0 0 1 0 18z" fill="currentColor"/>'),
     menu: I('<path d="M5 7h14M5 12h14M5 17h14"/>'),
+    marker: I('<path d="M14 4l6 6-8 8-6-6z"/><path d="M6 12l-2 7 7-2"/><path d="M13 21h8"/>'),
   };
 
   const mgo = (p) => { if (LN.mobile) LN.mobile.go(p); }; // スマホ用：見せる画面を変える（パソコン用では何も起きない）
-  const ui = { view: 'notes', subjectId: null, noteId: null, examId: null, examTab: 'summary', search: '', mode: 'split', study: false, closed: {}, open: {}, zoom: 0.72 };
+  const ui = { view: 'notes', subjectId: null, noteId: null, examId: null, examTab: 'summary', search: '', mode: 'split', study: false, marker: false, markerColor: 'y', markerErase: false, closed: {}, open: {}, zoom: 0.72 };
 
   /* ---------- 参照ヘルパー ---------- */
   const subj = (id) => st().subjects.find((s) => s.id === id) || null;
@@ -177,6 +178,7 @@
   function render() {
     destroyEditor(); // これから画面を描き直す：書いていたエディタの後始末（残すと、見えない所で動き続ける）
     ensureSelection();
+    if (ui.view !== 'notes') ui.marker = false; // マーカーは、ノートを書く画面だけ
     renderSidebar();
     if (ui.view === 'notes') renderNotes(); else renderExam();
     applyFold();
@@ -216,7 +218,8 @@
       '<div class="steps"><div class="step"><b>1. 教科をつくる</b><span>教科ごとに単元を分けて、講義ノートを書きます。</span></div>' +
       '<div class="step"><b>2. 印をつけて書く</b><span><code>==重要==</code> <code>{{穴埋め}}</code> <code>用語 :: 説明</code> <code>Q:</code>/<code>A:</code> を書くだけ。</span></div>' +
       '<div class="step"><b>3. 考査前に集める</b><span>範囲を選ぶと、まとめ・穴埋め・一問一答・用語テストのプリントができます。</span></div></div>' +
-      '<div class="row"><button class="btn primary" data-act="subject-add">' + ICON.plus + '教科を追加</button><button class="btn" data-act="sample">サンプルで試す</button></div></div>';
+      '<div class="row"><button class="btn primary" data-act="subject-add">' + ICON.plus + '教科を追加</button><button class="btn" data-act="sample">サンプルで試す</button></div>' +
+      '<p class="welcome-help"><a href="guide.html#first" target="_blank" rel="noopener">画像つきの使い方を見る</a></p></div>';
   }
 
   /* ---------- ノート画面 ---------- */
@@ -297,6 +300,7 @@
       '<button class="tb" data-act="fmt" data-fmt="h" title="見出し（押すたびに ## → ### → なし）"><b>H</b>見出し</button>' +
       '<button class="tb" data-act="fmt" data-fmt="bold" title="太字 (Ctrl+B)"><b>B</b></button>' +
       '<button class="tb hl" data-act="fmt" data-fmt="mark" title="重要マーク ==…== （Ctrl+E）— 考査対策の「重要ポイント」に集まります"><b>重要</b><span class="k">Ctrl+E</span></button>' +
+      '<button type="button" class="tb marker' + (ui.marker ? ' on' : '') + '" id="markerBtn" data-c="' + (ui.markerErase ? 'e' : ui.markerColor) + '" data-act="marker" aria-pressed="' + (ui.marker ? 'true' : 'false') + '" title="マーカー：押すと「マーカー中」になり、色を選んで、文字をなぞって選ぶだけで、そこがマーカー（重要マーク）になります。同じ色の上をなぞると消えます。もう一度押す（または Esc）で終わります。">' + ICON.marker + '<b>マーカー</b></button>' +
       '<button class="tb" data-act="fmt" data-fmt="cloze" title="穴埋め {{…}} — 穴埋めプリントの空欄になります">［　］穴埋め</button>' +
       '<span class="tb-sep"></span>' +
       '<button class="tb" data-act="fmt" data-fmt="ul" title="箇条書き">・箇条書き</button>' +
@@ -312,11 +316,14 @@
       '<span class="tb-sep"></span>' +
       modeSegHtml(live ? [['edit', '編集'], ['view', '表示']] : [['edit', '編集'], ['split', '分割'], ['view', '表示']], '', 'modeSeg') + '</div>' +
       '<div class="study-hint" id="studyHint"' + (ui.study ? '' : ' hidden') + '>暗記モード：青い空欄と Q&amp;A の答えをクリックすると表示されます。</div>' +
-      '<div class="ed-body m-' + ui.mode + (live ? ' live' : '') + '">' +
+      '<div class="marker-hint" id="markerHint"' + (ui.marker ? '' : ' hidden') + '><span class="mk-pal" role="group" aria-label="マーカーの色">' + MK_COLORS.map((c) => '<button type="button" class="mk-sw" data-act="marker-color" data-c="' + c[0] + '" aria-pressed="false" title="' + c[1] + '" aria-label="' + c[1] + '"><i></i></button>').join('') + '<button type="button" class="mk-sw mk-eraser" data-act="marker-color" data-c="e" aria-pressed="false" title="消しゴム：なぞった所のマーカーを、色に関係なく消します">消しゴム</button></span>' +
+        '<span class="mk-help"><b>マーカー中</b>　色を選んで、文字をなぞります。同じ色の上をなぞると消えます。（もう一度「マーカー」で終わり）</span></div>' +
+      '<div class="ed-body m-' + ui.mode + (live ? ' live' : '') + (ui.marker ? ' marker-on' : '') + '">' +
       (live ? '<div class="ln-ed" id="fBodyLive"></div>' : '<textarea id="fBody" spellcheck="false" placeholder="' + esc(EDITOR_HINT).replace(/\n/g, '&#10;') + '"></textarea>') +
       '<div class="preview md' + (ui.study ? ' study' : '') + '" id="preview"></div></div>' +
       '<div class="ed-foot"><span class="save-state" id="saveState">保存済み</span><span class="ed-stats" id="stats"></span><span class="grow"></span>' +
       '<button class="btn sm" data-act="note-print">' + ICON.print + '印刷</button><button class="btn sm ghost" data-act="note-del" style="color:var(--danger)">' + ICON.trash + '削除</button></div>';
+    markerSync();
     if (live) {
       edv = LN.editor.create({
         parent: $('#fBodyLive'), doc: n.body, placeholder: EDITOR_HINT,
@@ -394,6 +401,58 @@
     const base = at + pre.length;
     el.setSelectionRange(base + a, base + b);
   }
+  /* ---------- マーカー（js/marker.js） ----------
+   * 「マーカー」を押すと「マーカー中」になり、書く場所で文字をなぞって（ダブルクリック・三回クリックも）選ぶと、選んだ所が、そのまま重要マーク ==…== になる。
+   * すでにマーカーの所だけを選ぶと消える。付け方・消し方の細かい決まりは js/marker.js。パソコンは、マウスを離したとき。スマホは、選択（つまみ）の動きが止まって約0.9秒後。 */
+  const MK = { down: false, touch: false, timer: 0 };
+  const MK_COLORS = [['y', '黄'], ['p', 'ピンク'], ['g', '緑'], ['b', '青'], ['o', '橙']];
+  const MK_KEY = 'ln.markerColor';
+  try { const c = window.localStorage.getItem(MK_KEY); if (MK_COLORS.some((x) => x[0] === c)) ui.markerColor = c; } catch (e) { /* 保存できない環境では、黄色 */ }
+  /** ボタンとパレットの見た目を、いまの色・消しゴムに合わせる */
+  function markerSync() {
+    const b = $('#markerBtn'); if (b) b.dataset.c = ui.markerErase ? 'e' : ui.markerColor;
+    $$('.mk-sw').forEach((x) => { const on = x.dataset.c === 'e' ? ui.markerErase : (!ui.markerErase && x.dataset.c === ui.markerColor); x.classList.toggle('on', on); x.setAttribute('aria-pressed', on ? 'true' : 'false'); });
+  }
+  /** 色（y・p・g・b・o）か、消しゴム（e）を選ぶ。色は、次に開いたときも覚えている（消しゴムは、その場だけ） */
+  function setMarkerTool(c) {
+    if (c === 'e') ui.markerErase = true;
+    else if (MK_COLORS.some((x) => x[0] === c)) { ui.markerErase = false; ui.markerColor = c; try { window.localStorage.setItem(MK_KEY, c); } catch (e) { /* 覚えられなくても使える */ } }
+    markerSync();
+  }
+  function setMarker(on) {
+    on = !!on && ui.mode !== 'view';
+    ui.marker = on;
+    const b = $('#markerBtn'); if (b) { b.classList.toggle('on', on); b.setAttribute('aria-pressed', on ? 'true' : 'false'); }
+    const h = $('#markerHint'); if (h) h.hidden = !on;
+    const body = $('.ed-body'); if (body) body.classList.toggle('marker-on', on);
+    if (!on) { clearTimeout(MK.timer); MK.down = false; ui.markerErase = false; }   // 消しゴムは、マーカーを終えたら、色に戻る
+    markerSync();
+  }
+  function markerApply() {
+    clearTimeout(MK.timer);
+    if (!ui.marker || ui.mode === 'view' || MK.down || !LN.marker) return;
+    const el = taEl(); if (!el) return;
+    const s = el.selectionStart, e = el.selectionEnd;
+    if (s === e) return;
+    const r = LN.marker.apply(el.value, s, e, { color: ui.markerColor, erase: ui.markerErase });
+    if (!r.changed) return;
+    insertText(el, r.edit.insert, r.edit.from, r.edit.to);
+    el.setSelectionRange(r.cursor, r.cursor);
+    if (edv) { try { edv.view.contentDOM.blur(); } catch (err) { /* そのまま */ } } // カーソルを外す＝記号（==）を隠して、マーカーを完成した見た目で見せる
+  }
+  const markerSoon = (ms) => { clearTimeout(MK.timer); MK.timer = setTimeout(markerApply, ms); };
+  const inBody = (n) => !!(n && n.closest && n.closest('#fBodyLive, #fBody'));
+  document.addEventListener('pointerdown', (e) => {
+    if (!ui.marker) return;
+    MK.down = inBody(e.target); MK.touch = e.pointerType === 'touch';
+    if (MK.down) clearTimeout(MK.timer);
+  }, true);
+  const markerUp = () => { if (!ui.marker || !MK.down) return; MK.down = false; markerSoon(MK.touch ? 900 : 30); };
+  document.addEventListener('pointerup', markerUp, true);
+  document.addEventListener('pointercancel', markerUp, true);
+  document.addEventListener('selectionchange', () => { if (ui.marker && MK.touch && !MK.down && inBody(document.activeElement)) markerSoon(900); }); // スマホ：選択のつまみを動かしているあいだは待ち、止まってから付ける
+  document.addEventListener('keydown', () => { MK.touch = false; }, true); // キーボードで選んだときは、付けない
+
   function format(kind) {
     const el = taEl();
     if (!el) return;
@@ -435,7 +494,8 @@
 
   function setMode(m) {
     ui.mode = m;
-    const b = $('.ed-body'); if (b) b.className = 'ed-body m-' + m + (edv ? ' live' : '');
+    if (m === 'view') setMarker(false); // 表示の画面（なぞって選べない）では、マーカーをやめる
+    const b = $('.ed-body'); if (b) b.className = 'ed-body m-' + m + (edv ? ' live' : '') + (ui.marker ? ' marker-on' : '');
     $$('.modeSeg button').forEach((x) => x.classList.toggle('on', x.dataset.mode === m));
     if (m !== 'edit') updatePreview();
     if (edv && m === 'edit') { edv.view.requestMeasure(); edv.focus(); } // 「表示」から戻ったとき、書く場所の大きさを測り直して、続きから書ける
@@ -444,6 +504,7 @@
   function onBodyKey(e) {
     const el = taEl();
     const mod = e.ctrlKey || e.metaKey;
+    if (e.key === 'Escape' && ui.marker) { e.preventDefault(); setMarker(false); return; }
     if (mod && !e.shiftKey && !e.altKey) {
       if (e.key === 'b') { e.preventDefault(); format('bold'); return; }
       if (e.key === 'e') { e.preventDefault(); format('mark'); return; }
@@ -732,6 +793,14 @@
     },
     'review-toggle'(el) { const n = curNote(); n.review = !n.review; touch(n); el.classList.toggle('on', n.review); renderList(); },
     fmt(el) { format(el.dataset.fmt); },
+    'marker-color'(el) { setMarkerTool(el.dataset.c); markerApply(); },   // 色を選ぶ。いま選んでいる文字があれば、その色にする
+    marker() {
+      if (ui.marker) { setMarker(false); return; }
+      if (ui.study) A.study();          // 暗記モードは、いったん終える
+      if (ui.mode === 'view') setMode(edv ? 'edit' : 'split');
+      setMarker(true);
+      markerApply();                    // いま選んでいる文字があれば、すぐマーカーにする
+    },
     mode(el) { setMode(el.dataset.mode); },
     study() {
       ui.study = !ui.study;
@@ -865,12 +934,13 @@
     ];
     ask({
       title: '書き方ガイド', wide: true, ok: '閉じる', hideCancel: true,
-      body: '<table class="help-tbl"><thead><tr><th>書き方</th><th>表示</th><th>考査対策での使われ方</th></tr></thead><tbody>' +
+      body: '<div class="help-sec help-guide"><b>画像つきの使い方</b>　はじめての流れ・棚・AI の設定を、画面の写真つきで説明しています。　<button type="button" class="btn sm" data-act="guide-open">開く</button></div>' +
+        '<table class="help-tbl"><thead><tr><th>書き方</th><th>表示</th><th>考査対策での使われ方</th></tr></thead><tbody>' +
         rows.map((r) => '<tr><td>' + r[0] + '</td><td>' + r[1] + '</td><td>' + r[2] + '</td></tr>').join('') + '</tbody></table>' +
         '<div class="help-sec"><b>使い方の流れ</b><br>① 教科を作り、必要なら単元を作る　② ノートを書く（上の印をつけるだけ）　③「考査対策」で考査を作り、範囲の単元にチェック　' +
         '④「単元まとめ」で下書き→自分の言葉に整える　⑤「プリント作成」で印刷 / PDF保存。</div>' +
         '<div class="help-sec"><b>書いたその場で、見た目になります</b><br>「==重要==」「{{穴埋め}}」「**太字**」「## 見出し」などは、書き終えた瞬間に、完成した見た目に変わります。<b>カーソルがある行・部分だけ、記号が見えます</b>（書き直しやすくするためです）。表・数式・図解は、カーソルを外すと完成した見た目になり、クリックすると書き直せます。</div>' +
-        '<div class="help-sec"><b>入力のコツ</b><br>リスト行で Enter → 次の「- 」を自動入力（空の行で Enter → 終了）／ <code>Q:</code> の行で Enter → 次の行に <code>A:</code> を自動入力 ／ Ctrl+B 太字・Ctrl+E 重要マーク ／ Tab でインデント ／ 「暗記モード」で穴埋めと答えを隠して確認。</div>',
+        '<div class="help-sec"><b>入力のコツ</b><br>リスト行で Enter → 次の「- 」を自動入力（空の行で Enter → 終了）／ <code>Q:</code> の行で Enter → 次の行に <code>A:</code> を自動入力 ／ Ctrl+B 太字・Ctrl+E 重要マーク ／ <b>「マーカー」ボタン</b>を押して、色（黄・ピンク・緑・青・橙）を選び、文字をなぞって選ぶだけで、マーカー（重要マーク）になります（同じ色の上をなぞると消えます。「消しゴム」もあります。もう一度押すか Esc で終わり） ／ Tab でインデント ／ 「暗記モード」で穴埋めと答えを隠して確認。</div>',
     });
   }
 
@@ -946,7 +1016,7 @@
     const fn = A[el.dataset.act];
     if (fn) fn(el, e);
   });
-  document.addEventListener('mousedown', (e) => { if (e.target.closest('.ed-toolbar .tb')) e.preventDefault(); });
+  document.addEventListener('mousedown', (e) => { if (e.target.closest('.ed-toolbar .tb, .marker-hint .mk-sw')) e.preventDefault(); });
 
   document.addEventListener('input', (e) => {
     const t = e.target, n = curNote();

@@ -135,7 +135,8 @@
   function appCard() {
     return h('div', { class: 'sh-card' }, h('h2', { text: '初めての方へ' }),
       h('p', { class: 'sh-sub', text: 'ノートを書く・棚に投稿するには、Google を使うため、Safari または Chrome で開いてください。' }),
-      h('a', { id: 'shAppLink', class: 'sh-btn block', href: U.cfg.appUrl, target: '_blank', rel: 'noopener', text: '講義ノート（アプリ）を開く' }));
+      h('a', { id: 'shAppLink', class: 'sh-btn block', href: U.cfg.appUrl, target: '_blank', rel: 'noopener', text: '講義ノート（アプリ）を開く' }),
+      h('p', { class: 'sh-sub' }, h('a', { id: 'shGuideLink', href: 'guide.html#shelf', target: '_blank', rel: 'noopener', text: '画像つきの使い方を見る' })));
   }
   function showLogin(r) {
     const msg = msgBox();
@@ -397,7 +398,7 @@
 
   async function showShelf(sid, fid, t, fresh) {
     const o = await openFolder(sid, fid, t, fresh);
-    if (o) draw(sid, fid, o.sh, o.mem, o.fo, o.crumbs, o.lk);
+    if (o && me) draw(sid, fid, o.sh, o.mem, o.fo, o.crumbs, o.lk);   // 読み込み中にログアウトされていたら、描かない（描くと、ログアウト後に me が無く、エラーになる）
   }
 
   /* ---------- いいね（段階4）：数は、週に1回、管理者の端末が集計する ---------- */

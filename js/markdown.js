@@ -154,7 +154,7 @@
     s = s.replace(/\*\*(?=\S)([\s\S]+?)(?<=\S)\*\*/g, '<strong>$1</strong>');
     s = s.replace(/(?<![*\w])\*(?=[^\s*])([^*\n]+?)(?<=[^\s*])\*(?!\*)/g, '<em>$1</em>');
     s = s.replace(/~~(?=\S)([\s\S]+?)(?<=\S)~~/g, '<del>$1</del>');
-    s = s.replace(/==(?=\S)([\s\S]+?)(?<=\S)==/g, '<mark>$1</mark>');
+    s = s.replace(/==(?=\S)([\s\S]+?)(?<=\S)==(?:\{([ypgbo])\})?/g, (m, t, c) => '<mark' + (c && c !== 'y' ? ' class="mk-' + c + '"' : '') + '>' + t + '</mark>'); // マーカー。色は、閉じの == のすぐあとの {p}（ピンク）{g}（緑）{b}（青）{o}（橙）。黄色は印なし（{y} も黄色）
     s = s.replace(/\{\{([\s\S]+?)\}\}/g, (_, a) => { ctx.answers.push(restore(a)); return '<span class="cloze">' + a + '</span>'; });
     s = s.replace(/\n/g, '<br>');
     return restore(s);

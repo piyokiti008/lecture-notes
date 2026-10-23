@@ -1,0 +1,53 @@
+/* 使い方（guide.html）。基本の色・文字・カード・ボタンは css/shelf.css を使い、ここでは、説明ページ用の並べ方（目次・手順・画像・番号の丸）だけを足す。
+ * 画像の中の番号の丸は、test/guide-lib.js が重ねる色（#e8590c）と、同じ色にする（文章の ① と、画像の ① が、同じものに見えるように）。 */
+:root { --gd-mark: #e8590c; }
+.gd-app { max-width: 780px; margin: 0 auto; padding: 0 16px 64px; }
+.gd-app .sh-head { flex-wrap: wrap; }
+.gd-top { display: flex; gap: 14px; font-size: 13.5px; flex-wrap: wrap; }
+.gd-top a, .gd-app a { color: var(--accent); }
+.gd-toc { display: grid; gap: 10px; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); margin: 12px 0 8px; }
+.gd-toc a { display: block; padding: 12px 14px; background: var(--panel); border: 1px solid var(--line); border-radius: 12px; color: var(--text); text-decoration: none; }
+.gd-toc a:hover, .gd-toc a:focus-visible { border-color: var(--accent); }
+.gd-toc b { display: block; font-size: 15px; margin-bottom: 2px; }
+.gd-toc span { font-size: 12.5px; color: var(--text-2); }
+.gd-sec { margin: 40px 0 0; scroll-margin-top: 10px; }
+.gd-sec > h2 { font-size: 21px; margin: 0 0 8px; padding-bottom: 6px; border-bottom: 2px solid var(--accent); line-height: 1.4; }
+.gd-sec > .gd-lead { color: var(--text-2); margin: 0 0 4px; }
+.gd-step { margin: 30px 0 0; scroll-margin-top: 10px; }
+.gd-step > h3 { font-size: 17px; margin: 0 0 8px; line-height: 1.45; display: flex; gap: 10px; align-items: baseline; }
+.gd-no { flex: none; font-size: 12px; font-weight: 700; color: var(--on-accent); background: var(--accent); border-radius: 999px; padding: 1px 10px; white-space: nowrap; }
+.gd-step p { margin: 8px 0; }
+.gd-sub { font-size: 16px; margin: 28px 0 6px; padding-left: 10px; border-left: 4px solid var(--accent); line-height: 1.5; scroll-margin-top: 10px; }
+.gd-fig { margin: 12px 0; }
+.gd-fig a { display: block; }
+.gd-fig img { display: block; width: 100%; height: auto; border: 1px solid var(--line); border-radius: 10px; background: #fff; }
+.gd-fig.dlg img { max-width: 640px; }
+.gd-fig.small img { max-width: 300px; }
+.gd-fig.phone img { max-width: 330px; margin: 0 auto; }
+.gd-fig.phone figcaption { text-align: center; }
+.gd-fig figcaption { font-size: 12.5px; color: var(--text-2); margin-top: 6px; }
+.gd-pair { display: grid; gap: 14px; grid-template-columns: 1fr; align-items: start; }
+@media (min-width: 700px) { .gd-pair.two { grid-template-columns: auto 1fr; } .gd-pair.phones { grid-template-columns: 1fr 1fr; } }
+.gd-n { display: inline-block; flex: none; width: 1.55em; height: 1.55em; line-height: 1.55em; text-align: center; border-radius: 50%; background: var(--gd-mark); color: #fff; font-weight: 700; font-size: .85em; margin-right: .4em; vertical-align: .05em; }
+.gd-callouts { list-style: none; padding: 0; margin: 8px 0; }
+.gd-callouts li { margin: 7px 0; padding-left: 2.2em; text-indent: -2.2em; }
+.gd-callouts li .gd-n { text-indent: 0; }
+.gd-note, .gd-tip { border-radius: 10px; padding: 10px 14px; margin: 14px 0; font-size: 14px; line-height: 1.75; }
+.gd-note { background: var(--warn-bg); }
+.gd-tip { background: var(--ok-bg); }
+.gd-note b:first-child, .gd-tip b:first-child { display: block; margin-bottom: 2px; }
+.gd-note ul, .gd-tip ul { margin: 4px 0 0; padding-left: 1.3em; }
+.gd-tbl { width: 100%; border-collapse: collapse; margin: 10px 0; font-size: 14px; background: var(--panel); border: 1px solid var(--line); border-radius: 10px; overflow: hidden; }
+.gd-tbl th, .gd-tbl td { padding: 8px 10px; border-bottom: 1px solid var(--line); text-align: left; vertical-align: top; }
+.gd-tbl th { background: var(--bg); font-size: 13px; color: var(--text-2); }
+.gd-tbl tr:last-child td { border-bottom: 0; }
+.gd-tbl code, .gd-app p code, .gd-callouts code { background: var(--bg); border: 1px solid var(--line); border-radius: 5px; padding: 0 5px; font-size: .92em; }
+.gd-scroll { overflow-x: auto; }
+.gd-faq dt { font-weight: 700; margin: 16px 0 4px; }
+.gd-faq dd { margin: 0 0 6px; }
+.gd-foot { margin: 48px 0 0; padding-top: 14px; border-top: 1px solid var(--line); font-size: 13px; color: var(--text-2); display: flex; gap: 16px; flex-wrap: wrap; }
+@media (max-width: 520px) {
+  .gd-sec > h2 { font-size: 19px; }
+  .gd-step > h3 { font-size: 16px; }
+}
+@media print { .gd-top, .gd-toc { display: none; } .gd-fig img { break-inside: avoid; } }

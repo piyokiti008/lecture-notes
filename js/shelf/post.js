@@ -83,6 +83,7 @@
       rootEl.appendChild(h('div', { class: 'pst-tabs' },
         h('button', { id: 'pstTabPost', type: 'button', class: 'btn sm' + (st.tab === 'post' ? ' primary' : ''), disabled: st.working, onclick: () => { st.tab = 'post'; draw(); }, text: '投稿する' }),
         h('button', { id: 'pstTabManage', type: 'button', class: 'btn sm' + (st.tab === 'manage' ? ' primary' : ''), disabled: st.working, onclick: () => { st.tab = 'manage'; draw(); }, text: '自分の投稿の管理' })));
+      rootEl.appendChild(h('p', { class: 'pst-guide' }, h('a', { href: 'guide.html#shelf', target: '_blank', rel: 'noopener', text: '画像つきの使い方（棚へのログインと投稿の流れ）を見る' })));
       rootEl.appendChild(body);
       if (!googleReady(body)) return;
       if (st.tab === 'manage') return drawManage(body, n);

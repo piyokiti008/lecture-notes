@@ -325,6 +325,7 @@
       title: 'AI アシスタントの設定', wide: true, hideOk: true, cancelText: '閉じる',
       body: '<div class="ai-note"><b>費用について：</b>このアプリ自体は無料で、作者が費用を負担する仕組み（共通のキーやサーバー）はありません。' +
         '<b>「無料」の AI を選べば、利用料はかかりません。</b>' + (WEB ? 'API キーは、<b>このブラウザの中だけ</b>に保存されます（ドライブには同期されず、運営にも届きません）。AI への通信は、このブラウザから Google（Gemini）またはこのパソコンの Ollama へ直接行われます（「ブラウザの中で動かす」を選んだときは、AI のファイルを取得する通信〔このアプリの配信元、または Hugging Face〕だけです）。' : 'キーもデータも、あなたの PC の中だけで管理されます。') + '</div>' +
+        '<div class="ai-guide"><a href="guide.html#ai" target="_blank" rel="noopener">画像つきの案内（どれを選ぶ？・Gemini のキーの取り方・Ollama の設定）を見る</a></div>' +
         '<div class="prov-grid" id="provGrid"></div><div id="provPanel"></div><div class="ai-status" id="aiSetStatus"></div>',
       onOpen(form) {
         const say = (t, bad, spin) => { const s = $('#aiSetStatus', form); s.innerHTML = (spin ? '<span class="ai-spin"></span>' : '') + esc(t || ''); s.style.color = bad ? 'var(--danger)' : 'var(--text-2)'; };
