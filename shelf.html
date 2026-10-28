@@ -5,18 +5,24 @@
 <meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'self'; style-src 'self'; img-src 'self' data:; connect-src 'self' https://firestore.googleapis.com https://identitytoolkit.googleapis.com https://securetoken.googleapis.com https://www.googleapis.com; object-src 'none'; base-uri 'none'; form-action 'none'; frame-src https://drive.google.com">
 <meta name="referrer" content="no-referrer">
 <meta name="robots" content="noindex, nofollow">
-<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, interactive-widget=resizes-content">
 <script src="js/frameguard.js"></script>
+<script src="js/theme.js"></script>
 <title>講義ノート 棚</title>
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='8' fill='%232f5bea'/%3E%3Cpath d='M8 9h16M8 16h16M8 23h16' stroke='white' stroke-width='3' stroke-linecap='round'/%3E%3C/svg%3E">
+<link rel="stylesheet" href="css/app.css">
 <link rel="stylesheet" href="css/sheet.css">
-<link rel="stylesheet" href="css/shelf.css">
+<link rel="stylesheet" href="css/themes.css">
+<link rel="stylesheet" href="css/phone.css">
+<link rel="stylesheet" href="css/shelf-app.css">
 </head>
 <body>
-<main id="app" class="sh-app" aria-live="polite"><p class="sh-loading">読み込んでいます…</p></main>
+<div id="app" class="sh-app" aria-live="polite"><p class="sh-loading">読み込んでいます…</p></div>
+<dialog id="dlg"></dialog>
 <noscript><p class="sh-noscript">この画面を使うには、JavaScript を有効にしてください。</p></noscript>
 <script defer src="js/fbconfig.js"></script>
 <script defer src="js/shelf/model.js"></script>
+<script defer src="js/shelf/cols.js"></script>
 <script defer src="js/shelf/appcheck.js"></script>
 <script defer src="js/shelf/auth.js"></script>
 <script defer src="js/shelf/api.js"></script>
