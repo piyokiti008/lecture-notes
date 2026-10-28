@@ -361,6 +361,13 @@ a.btn { text-decoration: none; display: inline-block; }
 .ai-sheet-item { display: flex; align-items: center; gap: 6px; padding: 6px 8px; border: 1px solid var(--line); border-radius: var(--r-sm); font-size: 12.5px; cursor: pointer; }
 .ai-sheet-item.on { border-color: var(--accent); background: var(--accent-soft); }
 .ai-sheet-item .nm { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+/* 共同編集のノート（js/shelf/live.js）：ノートの上の帯（状態と、同期・終える・抜けるのボタン） */
+.co-bar { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; margin: 6px 0 0; padding: 6px 10px; border: 1px solid var(--line); border-radius: 10px; background: var(--accent-soft); font-size: 13px; }
+.co-bar .co-tag { font-weight: 800; color: var(--accent-text); }
+.co-bar .co-msg { color: var(--text-2); min-width: 0; }
+.co-bar[data-state="error"], .co-bar[data-state="denied"], .co-bar[data-state="login"], .co-bar[data-state="nologin"], .co-bar[data-state="quota"] { border-color: var(--danger); }
+.co-bar[data-state="pending"], .co-bar[data-state="paused"], .co-bar[data-state="budget"], .co-bar[data-state="offline"], .co-bar[data-state="gone"] { border-color: var(--warn); }
+.tb:disabled { opacity: .45; cursor: not-allowed; }
 .ai-badge { font-size: 10.5px; font-weight: 800; padding: 0 6px; border-radius: 4px; background: var(--accent-soft); color: var(--accent-text); }
 .opt-col textarea { min-height: 96px; resize: vertical; font-size: 13px; line-height: 1.6; }
 .opt-col .row2 select { font-size: 12.5px; }
@@ -469,3 +476,9 @@ html:not(.is-phone) .app.fold-list .list-col > .fold-strip, html:not(.is-phone) 
 @media (max-width: 860px) {
   html:not(.is-phone) .brand .fold-btn { display: none; }
 }
+/* 共同編集の返却（投稿者の「自分の投稿の管理」。js/shelf/post.js） */
+.pst-live { margin-top: 8px; padding-top: 8px; border-top: 1px dashed var(--line); }
+.pst-live-state { font-weight: 700; font-size: 13px; }
+.pst-diff { margin-top: 6px; font-size: 12.5px; }
+.pst-diff-del { color: var(--danger); overflow-wrap: anywhere; }
+.pst-diff-ins { color: var(--ok); overflow-wrap: anywhere; }

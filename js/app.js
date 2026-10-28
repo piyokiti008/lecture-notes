@@ -239,7 +239,7 @@
 
   function noteItemHtml(n) {
     return '<div class="note-item' + (n.id === ui.noteId ? ' on' : '') + '" data-act="note-select" data-id="' + n.id + '"><div class="ni-title">' + esc(n.title || '無題のノート') +
-      '</div><div class="ni-meta"><span>' + fmtDate(n.date) + '</span>' + (n.star ? '<span class="stars">' + '★'.repeat(n.star) + '</span>' : '') + (n.source === 'ai' ? '<span class="ai-badge" title="AI が作った内容です。確認してください">AI</span>' : '') + (n.review ? '<span class="badge">要復習</span>' : '') + '</div></div>';
+      '</div><div class="ni-meta"><span>' + fmtDate(n.date) + '</span>' + (n.star ? '<span class="stars">' + '★'.repeat(n.star) + '</span>' : '') + (n.source === 'ai' ? '<span class="ai-badge" title="AI が作った内容です。確認してください">AI</span>' : '') + (n.review ? '<span class="badge">要復習</span>' : '') + (n.shared ? '<span class="ai-badge co-badge" title="共同編集のノートです（本文を、ほかの人と共有しています）">共同</span>' : '') + '</div></div>';
   }
 
   function renderList() {
@@ -277,7 +277,40 @@
   let edv = null;
   const EDITOR_HINT = 'ここに講義メモを書きます。\n\n==大事な語== ・ {{穴埋めにしたい語}} ・ 用語 :: 説明 ・ Q: 問い / A: 答え\n（ツールバーのボタン、または右上の「書き方ガイド」を参照）';
   const useLive = () => { if (!(LN.editor && LN.editor.available)) return false; try { return window.localStorage.getItem('ln.editor') !== 'classic'; } catch (e) { return true; } };
-  function destroyEditor() { if (edv) { try { edv.destroy(); } catch (e) { /* 無視 */ } edv = null; } }
+  function destroyEditor() { if (LN.shelf && LN.shelf.live) LN.shelf.live.detach(); if (edv) { try { edv.destroy(); } catch (e) { /* 無視 */ } edv = null; } }
+
+  /* ---------- 共同編集のノート（js/shelf/live.js）：ふつうのノートと同じエディタ。本文だけを、まとめて同期する ---------- */
+  const isCo = (n) => !!(LN.shelf && LN.shelf.live && LN.shelf.live.isShared(n));
+  const coBarHtml = (n) => (!isCo(n) ? '' :
+    '<div class="co-bar" id="coBar" role="status" aria-live="polite" data-state="syncing"><span class="co-tag">共同編集</span><span class="co-msg" id="coMsg">同期しています…</span><span class="grow"></span>' +
+    '<button type="button" class="btn sm" data-act="co-sync" title="いますぐ、ほかの人の変更を取り込み、自分の変更を送ります">今すぐ同期</button>' +
+    (LN.shelf.live.canFinish(n) ? '<button type="button" class="btn sm" data-act="co-finish" title="共同編集を終えて、投稿者の確認（返却）を待ちます">終える</button>' : '') +
+    '<button type="button" class="btn sm ghost" data-act="co-leave" title="このノートを、ふつうのノートにします">抜ける</button></div>');
+  function coText(s) {
+    if (s.state === 'ok') {
+      const d = new Date(s.at), p2 = (x) => String(x).padStart(2, '0');
+      return 'この10分で ' + Math.max(1, s.editors) + ' 人が編集 ・ ' + p2(d.getHours()) + ':' + p2(d.getMinutes()) + ' に同期' + (s.conflicts ? ' ・⚠ 同時に直された所が ' + s.conflicts + ' か所（本文の「⚠」を直してください）' : '');
+    }
+    return s.msg || '';
+  }
+  function paintCoBar(s) { const bar = $('#coBar'), m = $('#coMsg'); if (!bar || !m) return; bar.dataset.state = s.state; m.textContent = coText(s); }
+  function liveAttach(n) {
+    if (!isCo(n)) return;
+    const Lv = LN.shelf.live;
+    Lv.onStatus = paintCoBar; paintCoBar(Lv.st);
+    Lv.attach(n, {
+      getText: () => taEl().value,
+      isComposing: () => !!(edv && edv.view && edv.view.composing),
+      applyChanges(list, newText) {
+        if (edv && edv.applyChanges) { edv.applyChanges(list); return; }
+        const el = $('#fBody'); if (!el) return;   // 従来の枠：カーソルを、変更に合わせて動かす
+        const a = el.selectionStart, b = el.selectionEnd, map = (p) => { let q = p; list.forEach((c) => { if (p > c.to) q += c.insert.length - (c.to - c.from); else if (p > c.from) q = c.from + c.insert.length; }); return q; };
+        el.value = newText; el.setSelectionRange(map(a), map(b));
+        const cn = curNote(); if (cn) { cn.body = newText; touch(cn); }
+        schedulePreview();
+      },
+    });
+  }
 
   function renderEditor() {
     destroyEditor();
@@ -286,6 +319,7 @@
     const n = curNote();
     if (!n) { col.innerHTML = '<div class="center-msg">ノートを選ぶか、<br>「新しいノート」を作成してください。</div>'; return; }
     const live = useLive();
+    const co = isCo(n);   // 共同編集のノート（js/shelf/live.js）
     if (live && ui.mode === 'split') ui.mode = 'edit'; // その場で見た目が変わるエディタでは、「分割」はなくなる（書く場所＝表示する場所）
     if (LN.theme && LN.theme.isPhone() && ui.mode === 'split') ui.mode = 'edit'; // スマホ用は、編集と表示を切り替える方式
     const units = unitsOf(n.subjectId);
@@ -295,7 +329,7 @@
       '<div class="ed-meta"><label class="fld">日付<input type="date" id="fDate" value="' + esc(n.date || '') + '"></label>' +
       '<label class="fld">単元<select id="fUnit">' + unitOpts + '</select></label>' +
       '<span class="fld">重要度<span class="starbtn" id="fStars">' + [1, 2, 3].map((i) => '<button data-act="star" data-n="' + i + '" class="' + (n.star >= i ? 'on' : '') + '" title="重要度 ' + i + '">★</button>').join('') + '</span></span>' +
-      '<button class="toggle' + (n.review ? ' on' : '') + '" id="fReview" data-act="review-toggle" title="あとで見直したいノートに">要復習</button></div></div>' +
+      '<button class="toggle' + (n.review ? ' on' : '') + '" id="fReview" data-act="review-toggle" title="あとで見直したいノートに">要復習</button></div>' + coBarHtml(n) + '</div>' +
       '<div class="ed-toolbar">' +
       '<button class="tb" data-act="fmt" data-fmt="h" title="見出し（押すたびに ## → ### → なし）"><b>H</b>見出し</button>' +
       '<button class="tb" data-act="fmt" data-fmt="bold" title="太字 (Ctrl+B)"><b>B</b></button>' +
@@ -308,8 +342,8 @@
       '<button class="tb" data-act="fmt" data-fmt="qa" title="Q: / A: — 一問一答プリントになります">Q&amp;A</button>' +
       '<button class="tb" data-act="fmt" data-fmt="table" title="表">表</button>' +
       '<button class="tb" data-act="fmt" data-fmt="math" title="数式 $…$">数式</button>' +
-      '<button class="tb" data-act="fmt" data-fmt="img" title="画像（Ctrl+V で貼り付けも可）">' + ICON.image + '画像</button>' +
-      (aiOn() ? '<span class="tb-sep"></span><button class="tb ai" data-act="ai-diagram" title="AI が図解を作って、ここに挿入します">' + ICON.chart + '図解 <span class="k">AI</span></button>' +
+      '<button class="tb" data-act="fmt" data-fmt="img"' + (co ? ' disabled title="共同編集のノートには、画像を入れられません（まだ文字だけです）"' : ' title="画像（Ctrl+V で貼り付けも可）"') + '>' + ICON.image + '画像</button>' +
+      (aiOn() ? '<span class="tb-sep"></span><button class="tb ai" data-act="ai-diagram"' + (co ? ' disabled title="共同編集のノートには、図解（画像）を入れられません（まだ文字だけです）"' : ' title="AI が図解を作って、ここに挿入します"') + '>' + ICON.chart + '図解 <span class="k">AI</span></button>' +
         '<button class="tb ai" data-act="ai-materials-note" title="スライド・PDF・動画などの教材から、AI がノートを作ります">' + ICON.file + '教材から <span class="k">AI</span></button>' : '') +
       '<span class="tb-spacer"></span>' +
       '<button class="tb' + (ui.study ? ' hl' : '') + '" id="studyBtn" data-act="study" title="穴埋めと答えを隠して確認できます"><b>暗記モード</b></button>' +
@@ -327,12 +361,13 @@
     if (live) {
       edv = LN.editor.create({
         parent: $('#fBodyLive'), doc: n.body, placeholder: EDITOR_HINT,
-        onChange(text) { const cur = curNote(); if (cur) { cur.body = text; touch(cur); scheduleStats(); } },
+        onChange(text) { const cur = curNote(); if (cur) { cur.body = text; touch(cur); scheduleStats(); if (co) LN.shelf.live.touch(); } },
         onKeydown: onBodyKey, onImageFile: addImageFile,
       });
     } else $('#fBody').value = n.body;
     updatePreview();
     updateStats();
+    liveAttach(n);
   }
 
   let pvTimer = null, stTimer = null;
@@ -477,6 +512,7 @@
 
   async function addImageFile(file) {
     if (!file || !file.type.startsWith('image/') || !taEl()) return;
+    if (isCo(curNote())) { toast('共同編集のノートには、画像を入れられません（まだ文字だけです）'); return; }
     const url = await new Promise((res, rej) => { const r = new FileReader(); r.onload = () => res(r.result); r.onerror = rej; r.readAsDataURL(file); });
     const img = await new Promise((res, rej) => { const i = new Image(); i.onload = () => res(i); i.onerror = rej; i.src = url; });
     let data = url;
@@ -784,6 +820,19 @@
       st().notes = st().notes.filter((x) => x.id !== n.id);
       ui.noteId = null; mgo('mid'); persistUi(); render(); toast('ノートを削除しました');
     },
+    'co-sync'() { if (isCo(curNote())) LN.shelf.live.syncNow(); },
+    async 'co-finish'() {
+      const n = curNote(); if (!isCo(n)) return;
+      if (!(await ask({ title: '共同編集を終える', message: '共同編集を終えて、投稿者の確認（ドライブへの返却）を待ちます。<br>終えると、いまの本文が最後の版になり、新しい編集は止まります。', ok: '終える' }))) return;
+      const r = await LN.shelf.live.finish();
+      toast(r.ok ? '共同編集を終えました。投稿者が確認すると、ドライブに返されます' : r.message);
+    },
+    async 'co-leave'() {
+      const n = curNote(); if (!isCo(n)) return;
+      if (!(await ask({ title: '共同編集から抜ける', message: '「' + esc(n.title || '無題のノート') + '」を、ふつうのノートにします。<br>いまの本文は残りますが、ほかの人の変更は入らなくなります。', ok: '抜ける' }))) return;
+      const r = await LN.shelf.live.leave();
+      if (r.ok) { renderEditor(); renderList(); toast('共同編集から抜けました'); } else toast(r.message);
+    },
     'note-print'() { doPrint(sh.buildNote(st(), ui.noteId).html, 'A4'); },
     star(el) {
       const n = curNote(), i = +el.dataset.n;
@@ -1022,7 +1071,7 @@
     const t = e.target, n = curNote();
     if (t.id === 'fTitle' && n) { n.title = t.value; touch(n); renderList(); }
     else if (t.id === 'fDate' && n) { n.date = t.value; touch(n); renderList(); }
-    else if (t.id === 'fBody' && n) { n.body = t.value; touch(n); schedulePreview(); }
+    else if (t.id === 'fBody' && n) { n.body = t.value; touch(n); schedulePreview(); if (isCo(n)) LN.shelf.live.touch(); }
     else if (t.id === 'search') { ui.search = t.value; renderList(); }
     else if (t.dataset.usum) {
       const u = st().units.find((x) => x.id === t.dataset.usum);

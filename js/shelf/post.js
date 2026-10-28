@@ -464,6 +464,33 @@
       body.appendChild(h('div', { id: 'pstImpPreview', class: 'pst-rules', text: doc0.body.slice(0, 300) + (doc0.body.length > 300 ? '…' : '') }));
       body.appendChild(field('取り込む教科', sel)); body.appendChild(newName);
       body.appendChild(msg); body.appendChild(go);
+      if (e.edit === 'ok' && S.live) {   // 共同編集：本文を、ほかの人と同時に直す（js/shelf/live.js）
+        const co = h('button', { id: 'pstImpCo', type: 'button', class: 'btn', text: '共同編集に参加する' });
+        co.addEventListener('click', async () => {
+          const subjName = (newName.value || '').trim();
+          if (sel.value === '__new' && !subjName) return say(msg, '新しい教科の名前を入力してください。');
+          co.disabled = go.disabled = true; say(msg, '');
+          try {
+            const origin = M.checkOrigin({ sid: im.sid, fid: im.fid, pid: im.pid, author: e.authorNick, title: e.name, edit: e.edit });
+            const r = await S.live.join({ sid: im.sid, fid: im.fid, pid: im.pid, entry: e, doc: doc0, subjectId: '', origin });
+            if (!r.ok) { co.disabled = go.disabled = false; return say(msg, r.message); }
+            let subjectId = sel.value;
+            if (subjectId === '__new') {
+              const s = { id: LN.uid(), name: subjName.slice(0, 100), color: '#5b6dd6', order: Math.max(0, ...((LN.state.subjects || []).map((x) => x.order || 0))) + 1 };
+              LN.state.subjects.push(s); subjectId = s.id;
+            }
+            r.note.subjectId = subjectId;
+            LN.state.notes.push(r.note);
+            LN.save(); await LN.flush();
+            U.ui.view = 'notes'; U.ui.subjectId = subjectId; U.ui.noteId = r.note.id; if (U.persistUi) U.persistUi();
+            U.reload();
+            body.textContent = '';
+            body.appendChild(h('div', { id: 'pstImpDone', class: 'bk-box' }, h('b', { text: '共同編集に参加しました。' }), h('br'), '「' + r.note.title + '」が、あなたのノートに入りました。ふつうのノートと同じように書けます。ほかの人の変更は、10〜30秒ごとに合流します。'));
+          } catch (err) { co.disabled = go.disabled = false; say(msg, '参加できませんでした：' + ((err && err.message) || '原因不明')); }
+        });
+        body.appendChild(h('p', { class: 'pst-sub', id: 'pstImpCoHelp', text: '共同編集：ほかの人と、同じノートを同時に直します（本文だけ。画像・図解は、まだ入れられません）。投稿者が確認すると、投稿に反映されます。' }));
+        body.appendChild(co);
+      }
     }
 
     /* ---------- 自分の投稿の管理（ドライブに置いたファイルの一覧・取り下げ） ---------- */
@@ -483,9 +510,15 @@
         return;
       }
       if (!r.files.length) return list.appendChild(h('p', { id: 'pstMineEmpty', class: 'pst-sub', text: '棚に出しているファイルは、ありません。' }));
-      r.files.forEach((f) => list.appendChild(mineRow(f)));
+      const liveBy = {};
+      if (AU.uid() && S.live) {   // 共同編集中・返却待ちのノート（投稿者の確認が要るもの）
+        const sids = Array.from(new Set(r.files.filter((f) => f.appProperties && f.appProperties.sid && f.appProperties.pid && /\.json$/.test(f.name)).map((f) => f.appProperties.sid)));
+        for (const sid of sids) { const lr = await A.liveList(sid); if (lr.ok) lr.items.forEach((x) => { if (x.owner === AU.uid()) liveBy[sid + '/' + x.pid] = x; }); }
+        if (!alive(n)) return;
+      }
+      r.files.forEach((f) => list.appendChild(mineRow(f, liveBy[((f.appProperties || {}).sid) + '/' + ((f.appProperties || {}).pid)])));
     }
-    function mineRow(f) {
+    function mineRow(f, live) {
       const wrap = h('div', { class: 'pst-mine', 'data-id': f.id });
       const props = f.appProperties || {};
       const show = () => {
@@ -493,7 +526,63 @@
         wrap.appendChild(h('div', { class: 'pst-mine-name', text: f.name }));
         wrap.appendChild(h('div', { class: 'pst-sub', text: M.fmtSize(f.size) + '　' + M.fmtDay(f.createdTime) }));
         wrap.appendChild(h('button', { type: 'button', class: 'btn sm pst-mine-del', text: '取り下げて削除', onclick: confirmDel }));
+        if (live) wrap.appendChild(liveBox());
       };
+      /* 共同編集：いまの状態・変更の確認・ドライブへ返す・終える／もう一度開く・破棄（投稿者だけが見る） */
+      function liveBox() {
+        const pid = props.pid, CEx = LN.coedit, L2 = S.live;
+        const box = h('div', { class: 'pst-live', id: 'pstLive_' + pid });
+        const m3 = msgBox('pstLiveMsg_' + pid), out = h('div', { class: 'pst-diff', id: 'pstLiveDiffOut_' + pid, hidden: true });
+        const day = (ms) => M.fmtDay(new Date(ms).toISOString());
+        const pending = live.state === 'pending', nEd = CEx.activeEditors(live.editors, Date.now());
+        box.appendChild(h('div', { class: 'pst-live-state', id: 'pstLiveState_' + pid, text: pending ? '共同編集：返却待ち（最後の変更 ' + day(live.at) + '）' : '共同編集中：いま ' + nEd + ' 人（最後の変更 ' + day(live.at) + '）' }));
+        box.appendChild(h('p', { class: 'pst-sub', text: pending ? '内容を確かめて、よければ「ドライブへ返す」を押してください。あなたのドライブの投稿ファイルが、この内容に置き換わります（元の内容は、ドライブの「版の管理」から戻せます）。' : '編集が終わったら「終える」か、いまの内容を「ドライブへ返す」ことができます。' }));
+        const row = h('div', { class: 'pst-row' });
+        row.appendChild(h('button', { type: 'button', class: 'btn sm', id: 'pstLiveDiff_' + pid, text: '変更を確認', onclick: async (ev) => {
+          const b = ev.currentTarget; b.disabled = true; say(m3, '');
+          try {
+            const text = await CEx.unpack(live.enc, live.text);
+            const rt = await D.readText(f.id, M.MAX_POST_BYTES), od = rt.ok ? M.parseNoteDoc(rt.text) : null;
+            const sm = CEx.summary(od && od.ok ? od.body : '', text, 12);
+            out.textContent = ''; out.hidden = false;
+            out.appendChild(h('p', { class: 'pst-sub', id: 'pstLiveDiffSum_' + pid, text: '元の投稿からの変更：追加 ' + sm.added + ' 行・削除 ' + sm.removed + ' 行' + (sm.total > sm.hunks.length ? '（先頭 ' + sm.hunks.length + ' か所を表示）' : '') }));
+            sm.hunks.forEach((hk) => {
+              hk.del.slice(0, 4).forEach((t) => out.appendChild(h('div', { class: 'pst-diff-del', text: '－ ' + t.slice(0, 80) })));
+              hk.ins.slice(0, 4).forEach((t) => out.appendChild(h('div', { class: 'pst-diff-ins', text: '＋ ' + t.slice(0, 80) })));
+            });
+          } catch (err) { say(m3, '変更を確認できませんでした：' + ((err && err.message) || '原因不明')); }
+          b.disabled = false;
+        } }));
+        row.appendChild(h('button', { type: 'button', class: 'btn sm primary', id: 'pstLiveBack_' + pid, text: 'ドライブへ返す', onclick: async (ev) => {
+          const b = ev.currentTarget, g = G(), tok = g && g.token();
+          if (!tok) return say(m3, 'Google のログインが切れました。「再接続」してからやり直してください。');
+          b.disabled = true; say(m3, '');
+          const r2 = await L2.giveBack({ sid: props.sid, pid, driveId: f.id, token: tok });
+          if (!r2.ok) { b.disabled = false; return say(m3, r2.message); }
+          box.textContent = '';
+          box.appendChild(h('p', { class: 'pst-ok', id: 'pstLiveDone_' + pid, text: '共同編集の内容を、ドライブの投稿に返しました。共同編集は終わりました。' }));
+        } }));
+        row.appendChild(h('button', { type: 'button', class: 'btn sm', id: 'pstLiveState2_' + pid, text: pending ? 'もう一度開く' : '終える', onclick: async (ev) => {
+          const b = ev.currentTarget; b.disabled = true; say(m3, '');
+          const to = pending ? 'open' : 'pending';
+          const r2 = await A.liveSetState({ sid: props.sid, pid, uid: AU.uid(), state: to });
+          if (!r2.ok) { b.disabled = false; return say(m3, r2.message); }
+          live.state = to; live.at = Date.now(); show();
+        } }));
+        let armed = false;
+        const drop = h('button', { type: 'button', class: 'btn sm danger', id: 'pstLiveDrop_' + pid, text: '破棄', onclick: async (ev) => {
+          const b = ev.currentTarget;
+          if (!armed) { armed = true; b.textContent = '本当に破棄する（共同編集の内容は消えます。ドライブの投稿は、そのまま）'; return; }
+          b.disabled = true; say(m3, '');
+          const r2 = await A.liveDelete(props.sid, pid);
+          if (!r2.ok) { b.disabled = false; return say(m3, r2.message); }
+          box.textContent = '';
+          box.appendChild(h('p', { class: 'pst-ok', id: 'pstLiveDropped_' + pid, text: '共同編集の内容を破棄しました（ドライブの投稿は、そのままです）。' }));
+        } });
+        row.appendChild(drop);
+        box.appendChild(row); box.appendChild(m3); box.appendChild(out);
+        return box;
+      }
       function confirmDel() {
         wrap.textContent = '';
         const m2 = msgBox('pstMineMsg');

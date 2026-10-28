@@ -366,6 +366,8 @@
       focus() { view.focus(); },
       /** s〜e を text に置き換えて、カーソルを入れた文字の後ろに置く（1回の操作として、元に戻せる） */
       insertAt(text, s, e) { view.dispatch({ changes: { from: s, to: e, insert: text }, selection: { anchor: s + text.length }, scrollIntoView: true, userEvent: 'input' }); },
+      /** ほかの人の変更を、差分だけ入れる（共同編集）。list＝[{ from, to, insert }]（いまの本文の位置・順番どおり）。元に戻す履歴には入れず、カーソル・選択は変更に合わせて動く */
+      applyChanges(list) { if (list && list.length) view.dispatch({ changes: list.map((c) => ({ from: c.from, to: c.to, insert: c.insert })), annotations: Transaction.addToHistory.of(false) }); },
       destroy() { view.destroy(); },
     };
     return ed;

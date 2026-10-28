@@ -170,6 +170,14 @@
     const setRef = (o, k, map) => { if (has(o, k)) o[k] = refOf(o[k], map); };
     const setStr = (o, k, max) => { if (!has(o, k)) return; if (typeof o[k] !== 'string') { fixed++; o[k] = ''; } else if (o[k].length > max) throw new RangeError('文字が長すぎます'); };
     const setNum = (o, k, fb) => { if (has(o, k) && !(typeof o[k] === 'number' && isFinite(o[k]))) { fixed++; o[k] = fb; } };
+    const validShared = (o) => { // 共同編集のノートの印（js/shelf/live.js）。形が正しくなければ、印を外して、ふつうのノートにする
+      const s = o.shared;
+      if (!s || typeof s !== 'object' || Array.isArray(s)) return false;
+      if (!(/^[a-z0-9]{12,40}$/.test(s.sid || '') && (s.fid === 'root' || /^[a-z0-9]{12,32}$/.test(s.fid || '')) && /^[a-z0-9]{12,32}$/.test(s.pid || '') && Number.isInteger(s.rev) && s.rev >= 0 && typeof s.base === 'string' && s.base.length <= 200000)) return false;
+      ['owner', 'startedBy', 'state'].forEach((k) => { if (k in s && (typeof s[k] !== 'string' || s[k].length > 64)) delete s[k]; });
+      Object.keys(s).forEach((k) => { if (!['sid', 'fid', 'pid', 'rev', 'base', 'owner', 'startedBy', 'state'].includes(k)) delete s[k]; });
+      return true;
+    };
     const setDate = (o, k) => { if (has(o, k) && !(typeof o[k] === 'string' && (o[k] === '' || DATE_RE.test(o[k])))) { fixed++; o[k] = ''; } };
 
     const subjects = list(src.subjects).map((r, i) => {
@@ -187,6 +195,7 @@
       if (has(o, 'star') && ![0, 1, 2, 3].includes(o.star)) { fixed++; o.star = 0; }
       if (has(o, 'review') && typeof o.review !== 'boolean') { fixed++; o.review = !!o.review; }
       if (has(o, 'source') && o.source !== 'ai') { fixed++; delete o.source; }
+      if (has(o, 'shared')) { o.shared = Object.assign({}, o.shared); if (!validShared(o)) { fixed++; delete o.shared; } }
       return o;
     });
     const exams = list(src.exams).map((r) => {

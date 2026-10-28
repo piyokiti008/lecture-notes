@@ -859,9 +859,10 @@
   /** ノートの投稿：取り込み（自分のノートに入れる。Safari / Chrome で開く）・元の投稿・派生版の一覧 */
   function noteExtras(sid, fid, e, o) {
     const out = [];
-    if (e.kind === 'note') {
-      out.push(h('a', { id: 'shImport', class: 'sh-btn', href: M.importLink(U.cfg.appUrl + U.cfg.appExternal, sid, fid, e.id), target: '_blank', rel: 'noopener', text: '自分のノートに取り込む（Safari / Chrome で開く）' }));
+    if (e.kind === 'note' && e.createdBy !== me.uid) {   // 取り込み（自分のノートにコピー）・共同編集への参加：投稿者以外に出す
+      out.push(h('a', { id: 'shImport', class: 'sh-btn', href: M.importLink(U.cfg.appUrl + U.cfg.appExternal, sid, fid, e.id), target: '_blank', rel: 'noopener', text: e.edit === 'ok' ? '自分のノートに取り込む／共同編集に参加する（Safari / Chrome で開く）' : '自分のノートに取り込む（Safari / Chrome で開く）' }));
     }
+    if (e.kind === 'note' && e.edit === 'ok') out.push(liveCard(sid, fid, e));
     if (e.derivedFrom) {
       const orig = o.fo.children.find((c) => c.id === e.derivedFrom && c.type === 'post');
       out.push(orig
@@ -876,6 +877,24 @@
           h('span', { class: 'sh-tag', text: '開く' })))))));
     }
     return out;
+  }
+
+  /** 共同編集の状態（作業用の写しを、開いたときに1回だけ読む）。参加は、取り込みの画面から（ノートのアプリで開く） */
+  function liveCard(sid, fid, e) {
+    const mine = e.createdBy === me.uid;
+    const state = h('p', { id: 'shLiveState', class: 'sh-note', text: '共同編集の状態を確かめています…' });
+    const box = h('div', { id: 'shLive', class: 'sh-card' }, h('h2', { text: '共同編集' }), state,
+      mine ? h('p', { id: 'shLiveMine', class: 'sh-note', text: 'あなたの投稿です。共同編集の確認・ドライブへの返却は、ノートのアプリのメニュー「棚に投稿」→「自分の投稿の管理」から。' }) : null);
+    (async () => {
+      const r = await A.liveGet(sid, e.id);
+      if (!state.isConnected) return;
+      if (!r.ok) { state.textContent = '共同編集の状態を確かめられませんでした。'; return; }
+      if (!r.exists) { state.textContent = '共同編集は、まだ始まっていません。' + (mine ? '' : '「取り込む／共同編集に参加する」から、ノートのアプリで始められます。'); return; }
+      if (r.state === 'pending') { state.textContent = '返却待ちです。投稿者が確認すると、投稿に反映されます。'; return; }
+      const now = Date.now(); let n = 0; Object.keys(r.editors).forEach((u) => { if (now - r.editors[u] <= 600000) n++; });
+      state.textContent = 'いま ' + Math.max(1, n) + ' 人が共同編集中です（最後の変更：' + M.fmtDay(new Date(r.at).toISOString()) + '）。';
+    })();
+    return box;
   }
 
   /** 投稿を通報する（自分の投稿以外）。理由は200文字まで。管理者の画面に届く */

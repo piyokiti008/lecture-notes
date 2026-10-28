@@ -122,6 +122,15 @@
     return x.r.ok ? { ok: true } : fail(x.r.status, await bodyOf(x.r));
   };
 
+  /** 既存のファイルの中身を、置き換える（共同編集の返却用。ファイルの ID・公開の設定は、そのまま）。text＝新しい中身 */
+  D.update = async function (token, id, text, mime) {
+    const x = await send(D.cfg.upload + '/files/' + encodeURIComponent(id) + '?uploadType=media&fields=' + encodeURIComponent('id,size'), {
+      method: 'PATCH', headers: auth(token, { 'Content-Type': mime || 'application/json' }), body: text,
+    }, D.cfg.uploadTimeoutMs);
+    if (x.error) return x.error;
+    return x.r.ok ? { ok: true } : fail(x.r.status, await bodyOf(x.r));
+  };
+
   /** ファイルを消す（ドライブから完全に消える。公開も外れる）。すでに無ければ、成功として扱う */
   D.remove = async function (token, id) {
     const x = await send(D.cfg.api + '/files/' + encodeURIComponent(id), { method: 'DELETE', headers: auth(token) });

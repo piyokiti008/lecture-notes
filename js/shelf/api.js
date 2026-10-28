@@ -280,13 +280,14 @@
    *  （管理者のメンバー文書が先に消えると、あとの削除の権限が無くなるため）。他のメンバーの参加一覧は、本人しか消せないので残る（開くと「棚が無い」と出て、外せる） */
   A.deleteShelf = async function (o) {
     const base = 'shelves/' + o.sid + '/';
-    const [mem, lk, rp, fl] = await Promise.all(['members', 'likes', 'reports', 'folders'].map((c) => A.listDocs(base + c)));
-    for (const r of [mem, lk, rp, fl]) if (!r.ok) return r;
+    const [mem, lk, rp, fl, lv] = await Promise.all(['members', 'likes', 'reports', 'folders', 'live'].map((c) => A.listDocs(base + c)));
+    for (const r of [mem, lk, rp, fl, lv]) if (!r.ok) return r;
     const dels = [];
     mem.docs.filter((d) => d.id !== o.uid).forEach((d) => dels.push(W.del(base + 'members/' + d.id)));
     lk.docs.forEach((d) => dels.push(W.del(base + 'likes/' + d.id)));
     rp.docs.forEach((d) => dels.push(W.del(base + 'reports/' + d.id)));
     fl.docs.forEach((d) => dels.push(W.del(base + 'folders/' + d.id)));
+    lv.docs.forEach((d) => dels.push(W.del(base + 'live/' + d.id)));   // 共同編集の作業用の写し（本文）も、一緒に消す
     if (o.code) dels.push(W.del('invites/' + o.code));
     for (let i = 0; i < dels.length; i += 200) {
       const r = await A.commit(dels.slice(i, i + 200));
@@ -322,4 +323,43 @@
   A.removeFolder = (o) => A.commit([
     W.patch(folderPath(o.sid, o.parent), { last: o.fid }, [fp('children', o.fid), 'last'], {}),
   ].concat(o.ids.map((id) => W.del(folderPath(o.sid, id)))));
+
+  /* ---------- 共同編集（作業用の写し）：shelves/{sid}/live/{pid}。docs/コミュニティ実装計画.md の「共同編集」 ----------
+   *  本文は、共同編集のあいだだけここに置く。版（rev）は 1 ずつ増える。書くときは、読んだときの updateTime を「前提」にして送り、
+   *  同時に書いた人がいたら、断られる（code: precondition）→ 読み直して合流し、やり直す。 */
+  const livePath = (sid, pid) => 'shelves/' + sid + '/live/' + pid;
+  const tsMs = (v) => { const t = Date.parse(v); return isNaN(t) ? 0 : t; };
+  const parseLive = (id, f, updateTime) => {
+    const ed = {}; Object.keys(f.editors || {}).forEach((u) => { ed[u] = tsMs(f.editors[u]); });
+    return {
+      ok: true, exists: true, pid: id, fid: String(f.fid || ''), owner: String(f.owner || ''), startedBy: String(f.startedBy || ''), title: String(f.title || ''),
+      state: f.state === 'pending' ? 'pending' : 'open', rev: Number(f.rev) || 0, enc: f.enc === 'gz' ? 'gz' : 'plain', text: String(f.text || ''),
+      by: String(f.by || ''), at: tsMs(f.at), started: tsMs(f.started), editors: ed, updateTime: updateTime || '',
+    };
+  };
+  /** 作業用の写しを1つ読む。無ければ { ok:true, exists:false } */
+  A.liveGet = async function (sid, pid) {
+    const r = await call('GET', A.cfg.docs + '/' + livePath(sid, pid));
+    if (!r.ok) return r.code === 'notfound' ? { ok: true, exists: false } : r;
+    return parseLive(pid, decFields(r.json.fields), r.json.updateTime);
+  };
+  /** 棚の中の、作業用の写しの一覧（投稿者の「返却待ち」の確認用。本文は含むので、件数は少ない前提） */
+  A.liveList = async function (sid) {
+    const r = await A.listDocs('shelves/' + sid + '/live');
+    return r.ok ? { ok: true, items: r.docs.map((d) => parseLive(d.id, d.fields, '')) } : r;
+  };
+  /** 始める（最初の本文＝投稿の本文）。o＝{ sid, fid, pid, uid, owner（投稿者）, title, enc, text }。すでにあれば code: exists */
+  A.liveCreate = (o) => A.commit([W.create(livePath(o.sid, o.pid), {
+    fid: o.fid, owner: o.owner, startedBy: o.uid, title: String(o.title || '').slice(0, 80), state: 'open', rev: 1, enc: o.enc, text: o.text, by: o.uid, editors: {},
+  }, { time: ['at', 'started', fp('editors', o.uid)] })]);
+  /** 本文を書く（版 +1）。o＝{ sid, pid, uid, rev（新しい版）, enc, text, updateTime（読んだときの）}。同時に書かれていたら code: precondition（または denied） */
+  A.liveWrite = (o) => {
+    const w = W.patch(livePath(o.sid, o.pid), { rev: o.rev, enc: o.enc, text: o.text, by: o.uid }, ['rev', 'enc', 'text', 'by'], { time: ['at', fp('editors', o.uid)] });
+    if (o.updateTime) w.currentDocument = { updateTime: o.updateTime };
+    return A.commit([w]);
+  };
+  /** 終える（返却待ちにする）／もう一度開く（投稿者だけ） */
+  A.liveSetState = (o) => A.commit([W.patch(livePath(o.sid, o.pid), { state: o.state, by: o.uid }, ['state', 'by'], { time: ['at'] })]);
+  /** 作業用の写しを消す（返却したあと・破棄・期限切れの掃除） */
+  A.liveDelete = (sid, pid) => A.commit([W.del(livePath(sid, pid))]);
 })(window);
