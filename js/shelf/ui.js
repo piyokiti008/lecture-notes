@@ -862,6 +862,9 @@
     if (e.kind === 'note' && e.createdBy !== me.uid) {   // 取り込み（自分のノートにコピー）・共同編集への参加：投稿者以外に出す
       out.push(h('a', { id: 'shImport', class: 'sh-btn', href: M.importLink(U.cfg.appUrl + U.cfg.appExternal, sid, fid, e.id), target: '_blank', rel: 'noopener', text: e.edit === 'ok' ? '自分のノートに取り込む／共同編集に参加する（Safari / Chrome で開く）' : '自分のノートに取り込む（Safari / Chrome で開く）' }));
     }
+    if (e.kind === 'note' && e.createdBy === me.uid && e.edit === 'ok') {   // 投稿者：共同編集を始める（コピーの取り込みは出さない）
+      out.push(h('a', { id: 'shLiveJoin', class: 'sh-btn', href: M.importLink(U.cfg.appUrl + U.cfg.appExternal, sid, fid, e.id), target: '_blank', rel: 'noopener', text: '共同編集を始める／続きから参加する（Safari / Chrome で開く）' }));
+    }
     if (e.kind === 'note' && e.edit === 'ok') out.push(liveCard(sid, fid, e));
     if (e.derivedFrom) {
       const orig = o.fo.children.find((c) => c.id === e.derivedFrom && c.type === 'post');
@@ -884,15 +887,15 @@
     const mine = e.createdBy === me.uid;
     const state = h('p', { id: 'shLiveState', class: 'sh-note', text: '共同編集の状態を確かめています…' });
     const box = h('div', { id: 'shLive', class: 'sh-card' }, h('h2', { text: '共同編集' }), state,
-      mine ? h('p', { id: 'shLiveMine', class: 'sh-note', text: 'あなたの投稿です。共同編集の確認・ドライブへの返却は、ノートのアプリのメニュー「棚に投稿」→「自分の投稿の管理」から。' }) : null);
+      mine ? h('p', { id: 'shLiveMine', class: 'sh-note' }, 'あなたの投稿です。共同編集は、あなたも、ほかのメンバーも、始められます。あなたが「終わりにする」と、内容が、この投稿に反映されます（ノートの画面の「終わりにする」）。ノートの画面が見つからないときは、', h('a', { id: 'shLiveManage', href: M.manageLink(U.cfg.appUrl + U.cfg.appExternal), target: '_blank', rel: 'noopener', text: '自分の投稿の管理' }), ' からも、確認して返せます。') : null);
     (async () => {
       const r = await A.liveGet(sid, e.id);
       if (!state.isConnected) return;
       if (!r.ok) { state.textContent = '共同編集の状態を確かめられませんでした。'; return; }
-      if (!r.exists) { state.textContent = '共同編集は、まだ始まっていません。' + (mine ? '' : '「取り込む／共同編集に参加する」から、ノートのアプリで始められます。'); return; }
-      if (r.state === 'pending') { state.textContent = '返却待ちです。投稿者が確認すると、投稿に反映されます。'; return; }
+      if (!r.exists) { state.textContent = mine ? '共同編集は、まだ始まっていません。上のボタンで始められます。始めると、ほかのメンバーが参加でき、終わりにするまで続きます。' : '共同編集は、まだ始まっていません。「取り込む／共同編集に参加する」から、始められます（投稿者がいなくても始められます）。'; return; }
+      if (r.state === 'pending') { state.textContent = mine ? '止まっています。参加して、「再開する」で続けるか、「終わりにする」で、この投稿に反映できます。' : '止まっています。始めた人（または投稿者）が、再開するか、終わりにするまでです（最後の変更から6時間たつと、参加者のだれでも終わりにできます）。'; return; }
       const now = Date.now(); let n = 0; Object.keys(r.editors).forEach((u) => { if (now - r.editors[u] <= 600000) n++; });
-      state.textContent = 'いま ' + Math.max(1, n) + ' 人が共同編集中です（最後の変更：' + M.fmtDay(new Date(r.at).toISOString()) + '）。';
+      state.textContent = 'いま ' + Math.max(1, n) + ' 人が共同編集中です（最後の変更：' + M.fmtDay(new Date(r.at).toISOString()) + '）。' + (mine ? '参加して、あなたが「終わりにする」と、この投稿に反映されます。' : '始めた人が終わりにすると、共同編集は終わります。結果は、投稿者が終わりにした場合は投稿に反映され、ほかの人が終わりにした場合は、その人の派生版として棚に出ます。');
     })();
     return box;
   }

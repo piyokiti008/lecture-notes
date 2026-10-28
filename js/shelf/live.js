@@ -23,7 +23,17 @@
   L.isShared = (n) => !!(n && n.shared && typeof n.shared === 'object' && SID_RE.test(n.shared.sid || '') && (n.shared.fid === 'root' || ID_RE.test(n.shared.fid || '')) && ID_RE.test(n.shared.pid || '')
     && Number.isInteger(n.shared.rev) && n.shared.rev >= 0 && typeof n.shared.base === 'string');
   /** 「終える」（返却待ちにする）ができる人か：投稿者・始めた人（管理者は、棚の画面から） */
-  L.canFinish = (n) => { const u = AU() && AU().uid(); return !!(u && L.isShared(n) && (n.shared.owner === u || n.shared.startedBy === u)); };
+  L.isOwner = (n) => { const u = AU() && AU().uid(); return !!(u && L.isShared(n) && n.shared.owner === u); };       // 投稿者（終わりにすると、自分の投稿に反映される）
+  L.isStarter = (n) => { const u = AU() && AU().uid(); return !!(u && L.isShared(n) && n.shared.startedBy === u); };   // 始めた人
+  L.canFinish = (n) => L.isOwner(n) || L.isStarter(n);   // 止める（あとで返す）・再開できる人
+  /** 終わりにできる人：投稿者・始めた人。放置されて（最後の変更から6時間）止まっていれば、参加者のだれでも（自分の派生版として出せる） */
+  L.canEnd = (n) => {
+    if (!L.isShared(n)) return false;
+    if (L.canFinish(n)) return true;
+    return !!(cur && cur.noteId === n.id && cur.liveAt && Date.now() - cur.liveAt >= CE().CFG.autoPendingMs);
+  };
+  /** 終わりにしたとき、内容がどうなるか（確認の文・帯の案内に使う） */
+  L.endHint = (n) => (L.isOwner(n) ? 'あなたの投稿に反映されます' : 'あなたの派生版として、棚に出ます');
 
   /* ---------- 状態の表示 ---------- */
   const MSG = {
@@ -35,9 +45,14 @@
     quota: '通信が混み合っているため、自動の同期を止めました。「今すぐ同期」で、手動で同期できます。',
     budget: '今日の自動の同期の上限（3時間）に達しました。「今すぐ同期」で、手動で同期できます。',
     paused: 'しばらく動きがないため、自動の同期を止めました。打つか「今すぐ同期」で再開します。',
-    pending: '返却待ちです。投稿者が確認するまで、編集は止まっています（あなたの変更は、このノートに残っています）。',
-    gone: '共同編集は終わりました（投稿者が反映したか、写しが消えました）。このノートは、あなたのふつうのノートとして残ります。',
+    gone: '共同編集は終わりました（投稿者が終わりにして、投稿に反映しました）。このノートは、あなたのふつうのノートとして残ります。',
   };
+  /** 止まっているときの案内：誰が・何をすれば、続くか・終わるか */
+  function pendingMsg(n) {
+    return L.canFinish(n)
+      ? '止まっています（「あとで返す」を選びました）。「再開する」で続けるか、「終わりにする」で、内容が' + L.endHint(n) + '。'
+      : '止まっています：始めた人（または投稿者）が、再開するか、終わりにするまでです。最後の変更から6時間たつと、あなたも「終わりにする」ができます（あなたの派生版として、棚に出ます）。あなたの変更は、このノートに残っています。待たずに、「抜ける」で、いまの本文を自分のノートにすることもできます。';
+  }
   function setStatus(state, msg, extra) {
     Object.assign(L.st, { state, msg: msg || MSG[state] || '' }, extra || {});
     if (state === 'ok') L.st.at = Date.now();
@@ -132,7 +147,7 @@
     const now = Date.now();
     const remoteChanged = r.rev !== sh.rev || remote !== sh.base;
     if (remoteChanged) c.lastRemoteAt = now;
-    c.editors = CE().activeEditors(r.editors, now);
+    c.editors = CE().activeEditors(r.editors, now); c.liveAt = r.at;   // 最後の書き込みの時刻（放置されたか）
     // 3方向の合流
     let merged = mine0, conflicts = 0;
     if (remoteChanged) { const m = CE().merge3(sh.base, mine0, remote); merged = m.text; conflicts = m.conflicts; }
@@ -176,7 +191,7 @@
     const d = CE().pollDelay({ sinceRemote: Date.now() - (c.lastRemoteAt || 0) > 1e12 ? Infinity : Date.now() - c.lastRemoteAt, sinceLocal: Date.now() - Math.max(c.lastEditAt || 0, c.attachAt || 0), alone: c.editors <= 1 && !remoteChanged });
     const extra = { editors: c.editors, conflicts: CE().countMarks(textNow) };
     c.frozen = r.state === 'pending';   // 返却待ちの間は、自動の同期も送信も止める（「今すぐ同期」で、状態を確かめ直せる）
-    if (r.state === 'pending') return say('pending', '', extra);
+    if (r.state === 'pending') return say('pending', pendingMsg(n), extra);
     if (d === null) { c.autoPaused = true; return say('paused', '', extra); }
     c.nextPollAt = Date.now() + d;
     say('ok', '', extra);
@@ -200,15 +215,89 @@
   }
 
   /* ---------- 終える・抜ける ---------- */
-  /** 共同編集を終える（返却待ちにする）。投稿者か始めた人。最後に、未送信の変更を送ってから */
+  /** 共同編集を、いったん止める＝「あとで返す」（返却待ち）。始めた人（投稿者）。最後に、未送信の変更を送ってから */
   L.finish = async function () {
     const c = cur, n = c && noteOf(c.noteId);
     if (!n || !L.isShared(n)) return { ok: false, message: '共同編集のノートではありません。' };
     const stop = c; await tick('manual'); if (stop.busy) await delay(300);
     const r = await A().liveSetState({ sid: n.shared.sid, pid: n.shared.pid, uid: AU().uid(), state: 'pending' });
-    if (!r.ok) return { ok: false, message: r.code === 'denied' ? '共同編集を終えられるのは、投稿者か、始めた人です。' : r.message };
-    n.shared.state = 'pending'; LN.save(); setStatus('pending'); if (cur) cur.frozen = true;
+    if (!r.ok) return { ok: false, message: r.code === 'denied' ? '共同編集を止められるのは、始めた人か投稿者です。' : r.message };
+    n.shared.state = 'pending'; LN.save(); setStatus('pending', pendingMsg(n)); if (cur) cur.frozen = true;
     return { ok: true };
+  };
+  /** 止めていた共同編集を、再開する（始めた人） */
+  L.reopen = async function () {
+    const c = cur, n = c && noteOf(c.noteId);
+    if (!n || !L.isShared(n)) return { ok: false, message: '共同編集のノートではありません。' };
+    const r = await A().liveSetState({ sid: n.shared.sid, pid: n.shared.pid, uid: AU().uid(), state: 'open' });
+    if (!r.ok) return { ok: false, message: r.code === 'denied' ? '再開できるのは、始めた人か投稿者です。' : r.message };
+    n.shared.state = 'open'; LN.save(); c.frozen = false; c.autoPaused = false; c.nextPollAt = Date.now(); setStatus('syncing'); plan();
+    return { ok: true };
+  };
+  /** 共同編集の結果を、自分の派生版として、棚に出す（投稿者でない人が終わりにするとき）。o＝{ sid, fid, origPid, title, body, acc＝{ token（文字）, folderId() } }
+   *  → { ok:true, pid, title } か { ok:false, message }。元の投稿は、そのまま（ドライブの投稿ファイルは書き換えない） */
+  L.publishDerived = async function (o) {
+    const uid = AU().uid(), acc = o.acc;
+    const pr = await A().getProfile(uid);
+    if (!pr.ok || !pr.exists) return { ok: false, message: pr.ok ? '棚のプロフィールが見つかりません。' : pr.message };
+    const fo = await A().getFolder(o.sid, o.fid);
+    if (!fo.ok) return { ok: false, message: fo.message };
+    if (!fo.exists) return { ok: false, message: '投稿先のフォルダが見つかりません（消されたかもしれません）。' };
+    if (fo.children.length >= M().MAX_CHILDREN) return { ok: false, message: 'このフォルダは、いっぱいです（' + M().MAX_CHILDREN + '件まで）。' };
+    const orig = fo.children.find((x) => x.id === o.origPid && x.type === 'post');
+    const derived = !!(orig && orig.kind === 'note' && orig.edit === 'ok');   // 元の投稿が無い・編集OKでなくなっていたら、ふつうの投稿として出す
+    const title = ((orig ? orig.name : o.title || '共同編集のノート') + '（共同編集）').slice(0, M().POST_TITLE_MAX);
+    const doc = M().buildNoteDoc({ title, date: today(), body: o.body }, {});
+    const blob = new Blob([JSON.stringify(doc)], { type: 'application/json' });
+    if (blob.size > M().MAX_POST_BYTES) return { ok: false, message: 'ノートが大きすぎて、棚に出せません。' };
+    let folderId;
+    try { folderId = await acc.folderId(); } catch (e) { return { ok: false, message: e && e.status === 401 ? 'Google のログインが切れました。もう一度ログインしてください。' : 'ドライブの「講義ノート」フォルダを用意できませんでした。' }; }
+    const pid = M().newPostId();
+    const up = await D().upload(acc.token, blob, { name: M().driveFileName(title, 'note'), mime: 'application/json', parents: [folderId], appProperties: { ln: 'post', sid: o.sid, fid: o.fid, pid } });
+    if (!up.ok) return { ok: false, message: up.message };
+    const sh = await D().share(acc.token, up.id);
+    if (!sh.ok) { await D().remove(acc.token, up.id).catch(() => null); return { ok: false, message: '公開の設定ができなかったため、ファイルを消しました。' + sh.message }; }
+    const ad = await A().addPost({ sid: o.sid, parent: o.fid, pid, uid, nick: pr.nick, name: title, driveId: up.id, kind: 'note', mime: 'application/json', size: blob.size, edit: 'ok', derivedFrom: derived ? o.origPid : '' });
+    if (!ad.ok) { await D().remove(acc.token, up.id).catch(() => null); return { ok: false, message: '棚に登録できませんでした' + (ad.code === 'denied' ? '（この棚のメンバーでなくなったか、フォルダがいっぱいかもしれません）。' : '：' + ad.message) }; }
+    return { ok: true, pid, title };
+  };
+  /** 共同編集を終わりにする。投稿者が終わりにすると、投稿者のドライブの投稿ファイルが、合流した本文に置き換わる（投稿に反映）。
+   *  投稿者でない人が終わりにすると、その人の派生版として棚に出る（元の投稿は、そのまま）。どちらも、未送信の変更を送ってから、共同編集の写しを消す。
+   *  acc＝{ token（Google のアクセストークン。文字）, folderId()（ドライブの「講義ノート」フォルダ）}。無ければ needLogin。→ { ok:true, mode:'reflect'|'derived', title? } か { ok:false, message, needLogin? } */
+  L.end = async function (acc) {
+    const c = cur, n = c && noteOf(c.noteId);
+    if (!n || !L.isShared(n)) return { ok: false, message: '共同編集のノートではありません。' };
+    if (!L.canEnd(n)) return { ok: false, message: '共同編集を終わりにできるのは、始めた人か投稿者です（最後の変更から6時間たつと、参加者のだれでもできます）。' };
+    if (!acc || !acc.token) return { ok: false, needLogin: true, message: 'Google ドライブにログインしていません。ログインしてから、もう一度押してください。' };
+    const sh = n.shared, owner = L.isOwner(n);
+    if (sh.state === 'pending' && L.canFinish(n)) {   // 止めていたら、先に再開して、自分の未送信の変更も入れる
+      const ro = await A().liveSetState({ sid: sh.sid, pid: sh.pid, uid: AU().uid(), state: 'open' });
+      if (!ro.ok) return { ok: false, message: ro.message };
+      sh.state = 'open'; c.frozen = false;
+    }
+    await tick('manual'); if (c.busy) await delay(300);
+    const lr = await A().liveGet(sh.sid, sh.pid);
+    if (!lr.ok) return { ok: false, message: lr.message };
+    if (!lr.exists) return { ok: false, message: '共同編集の写しが、すでに消えています（ほかの人が終わりにしたかもしれません）。' };
+    let serverText; try { serverText = await CE().unpack(lr.enc, lr.text); } catch (e) { return { ok: false, message: e.message }; }
+    const finalText = CE().merge3(sh.base, String(n.body || ''), serverText).text;   // サーバーの本文に、自分の未送信の変更も合わせた、最終の本文
+    let mode, title = '';
+    if (owner) {
+      const fo = await A().getFolder(sh.sid, sh.fid);
+      const entry = fo.ok && fo.exists ? fo.children.find((x) => x.id === sh.pid && x.type === 'post') : null;
+      if (!entry) return { ok: false, message: '投稿が見つかりません（削除された可能性があります）。' };
+      const r = await L.giveBack({ sid: sh.sid, pid: sh.pid, driveId: entry.driveId, token: acc.token, text: finalText });   // 反映して、写しも消す
+      if (!r.ok) return r;
+      mode = 'reflect';
+    } else {
+      const r = await L.publishDerived({ sid: sh.sid, fid: sh.fid, origPid: sh.pid, title: n.title, body: finalText, acc });
+      if (!r.ok) return r;
+      mode = 'derived'; title = r.title;
+      const del = await A().liveDelete(sh.sid, sh.pid);   // 派生版を出せたので、写しを消す（消せなくても、派生版は出ている）
+      if (!del.ok) { /* 放置された写しは、あとで掃除される */ }
+    }
+    delete n.shared; LN.save(); L.detach(); setStatus('idle');
+    return { ok: true, mode, title };
   };
   /** 共同編集から抜ける（このノートは、いまの本文のまま、ふつうのノートになる）。サーバーの写しは、そのまま */
   L.leave = async function () {
@@ -232,7 +321,11 @@
     if (!r.ok) return { ok: false, message: r.message };
     let text, rev, owner, startedBy;
     if (r.exists) {
-      if (r.state === 'pending') return { ok: false, message: 'この共同編集は、いま「返却待ち」です（投稿者が確認するまで、新しく参加できません）。' };
+      if (r.state === 'pending') {
+        if (r.owner !== uid && r.startedBy !== uid) return { ok: false, message: '共同編集は、いま止まっています。始めた人（または投稿者）が再開するか、終わりにするまで、新しく参加できません。' };
+        const ro = await A().liveSetState({ sid: o.sid, pid: o.pid, uid, state: 'open' });   // 始めた人・投稿者が戻ってきたら、再開する
+        if (!ro.ok) return { ok: false, message: ro.message };
+      }
       if (CE().activeEditors(r.editors, Date.now()) >= CE().CFG.maxEditors && !(uid in r.editors)) return { ok: false, message: 'この共同編集は、いま満員です（同時に ' + CE().CFG.maxEditors + ' 人まで）。しばらくしてからお試しください。' };
       try { text = await CE().unpack(r.enc, r.text); } catch (err) { return { ok: false, message: err.message }; }
       rev = r.rev; owner = r.owner; startedBy = r.startedBy;
@@ -244,7 +337,7 @@
       const c = await A().liveCreate({ sid: o.sid, fid: o.fid, pid: o.pid, uid, owner: e.createdBy, title: e.name, enc: pk.enc, text: pk.text });
       if (!c.ok) {
         if (c.code === 'exists') return L.join(o);   // 同時に、ほかの人が始めた：その写しに参加する
-        return { ok: false, message: c.code === 'denied' ? 'この投稿は、共同編集を始められません（投稿者が「編集OK」にしていない、またはこの棚のメンバーでない可能性があります）。' : c.message };
+        return { ok: false, message: c.code === 'denied' ? 'この投稿は、共同編集を始められません（「編集OK」でない、またはこの棚のメンバーでない可能性があります）。' : c.message };
       }
       text = o.doc.body; rev = 1; owner = e.createdBy; startedBy = uid;
     }
@@ -261,7 +354,9 @@
     const r = await A().liveGet(o.sid, o.pid);
     if (!r.ok) return { ok: false, message: r.message };
     if (!r.exists) return { ok: false, message: '共同編集の写しが見つかりません（すでに消えています）。' };
-    let text; try { text = await CE().unpack(r.enc, r.text); } catch (e) { return { ok: false, message: e.message }; }
+    let text;
+    if (typeof o.text === 'string') text = o.text;   // 終わりにする人の、未送信の変更も入れた本文
+    else { try { text = await CE().unpack(r.enc, r.text); } catch (e) { return { ok: false, message: e.message }; } }
     const orig = await D().readText(o.driveId, M().MAX_POST_BYTES);
     const od = orig.ok ? M().parseNoteDoc(orig.text) : null;
     const doc = M().buildNoteDoc({ title: (od && od.ok && od.title) || r.title, date: od && od.ok ? od.date : '', body: text }, {});

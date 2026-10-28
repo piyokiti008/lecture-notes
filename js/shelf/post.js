@@ -38,6 +38,15 @@
   const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 
   P.isOpen = () => !!current;   // テスト用：いま、投稿のダイアログを開いているか
+  P.driveAccess = () => G();   // Google ドライブの口（共同編集を終わりにして、派生版を出すときに、「講義ノート」フォルダを使う）
+  /** ドライブの書き込み用トークン（切れていたら、再接続を試みる）。Google にログインしていなければ null（共同編集を「終わりにする」ときに使う） */
+  P.driveToken = async function () {
+    const g = G();
+    if (!g || !g.enabled || !g.enabled()) return null;
+    let t = g.token();
+    if (!t && g.reconnect) { try { await g.reconnect(); } catch (e) { /* 下で null */ } t = g.token(); }
+    return t || null;
+  };
 
   P.init = function (ui) {
     U = ui;
@@ -458,14 +467,17 @@
         } catch (err) { go.disabled = false; say(msg, '取り込めませんでした：' + ((err && err.message) || '原因不明')); }
       });
       body.appendChild(h('div', { class: 'bk-box', id: 'pstImpInfo' }, h('b', { id: 'pstImpTitle', text: e.name }), h('br'), (e.authorNick || '') + ' さんのノート（' + M.fmtSize(e.size) + '）'));
-      body.appendChild(e.edit === 'ok'
+      const poster = e.createdBy === AU.uid() && e.edit === 'ok' && !!S.live;   // 自分の投稿：コピーの取り込みではなく、共同編集を始める
+      body.appendChild(poster
+        ? h('p', { id: 'pstImpEdit', class: 'pst-sub', text: 'あなたの投稿です。共同編集は、あなたも、ほかのメンバーも、始められます。あなたが「終わりにする」と、内容が、あなたの投稿に反映されます。' })
+        : e.edit === 'ok'
         ? h('p', { id: 'pstImpEdit', class: 'pst-sub', text: '投稿者は「編集OK」にしています。取り込んで直し、元の投稿の「派生版」として出せます。' })
         : h('p', { id: 'pstImpEdit', class: 'pst-msg', text: '投稿者は「編集しないでほしい」を選んでいます。取り込みは、個人利用だけにしてください。派生版は出せません。' }));
       body.appendChild(h('div', { id: 'pstImpPreview', class: 'pst-rules', text: doc0.body.slice(0, 300) + (doc0.body.length > 300 ? '…' : '') }));
       body.appendChild(field('取り込む教科', sel)); body.appendChild(newName);
-      body.appendChild(msg); body.appendChild(go);
+      body.appendChild(msg); if (!poster) body.appendChild(go);
       if (e.edit === 'ok' && S.live) {   // 共同編集：本文を、ほかの人と同時に直す（js/shelf/live.js）
-        const co = h('button', { id: 'pstImpCo', type: 'button', class: 'btn', text: '共同編集に参加する' });
+        const co = h('button', { id: 'pstImpCo', type: 'button', class: poster ? 'btn primary' : 'btn', text: '共同編集を始める／参加する' });
         co.addEventListener('click', async () => {
           const subjName = (newName.value || '').trim();
           if (sel.value === '__new' && !subjName) return say(msg, '新しい教科の名前を入力してください。');
@@ -488,8 +500,18 @@
             body.appendChild(h('div', { id: 'pstImpDone', class: 'bk-box' }, h('b', { text: '共同編集に参加しました。' }), h('br'), '「' + r.note.title + '」が、あなたのノートに入りました。ふつうのノートと同じように書けます。ほかの人の変更は、10〜30秒ごとに合流します。'));
           } catch (err) { co.disabled = go.disabled = false; say(msg, '参加できませんでした：' + ((err && err.message) || '原因不明')); }
         });
-        body.appendChild(h('p', { class: 'pst-sub', id: 'pstImpCoHelp', text: '共同編集：ほかの人と、同じノートを同時に直します（本文だけ。画像・図解は、まだ入れられません）。投稿者が確認すると、投稿に反映されます。' }));
+        body.appendChild(h('p', { class: 'pst-sub', id: 'pstImpCoHelp', text: poster
+          ? '「共同編集を始める」を押すと、このノートが、あなたのノートに入り、ほかのメンバーが参加できます（本文だけ。画像・図解は、まだ入れられません）。ノートの画面の「終わりにする」を押すと、いまの内容が、あなたの投稿に反映されます。'
+          : '共同編集：ほかの人と、同じノートを同時に直します（本文だけ。画像・図解は、まだ入れられません）。投稿者がいなくても始められます。終わりにすると、結果は、投稿者が終わりにした場合は投稿に反映され、ほかの人が終わりにした場合は、その人の派生版として棚に出ます。' }));
         body.appendChild(co);
+        A.liveGet(im.sid, im.pid).then((lr) => {   // 始まっているか・止まっているかで、ボタンの文と、押せるかを決める
+          if (!alive(n) || !lr.ok) return;
+          const uid = AU.uid();
+          if (!lr.exists) { co.textContent = '共同編集を始める'; return; }
+          if (lr.state === 'open') { co.textContent = '共同編集に参加する'; return; }
+          if (lr.owner === uid || lr.startedBy === uid) { co.textContent = '共同編集を再開して、参加する'; return; }
+          co.disabled = true; say(msg, '共同編集は、いま止まっています。始めた人（または投稿者）が、再開するか、終わりにするまで、参加できません。');
+        });
       }
     }
 
@@ -562,7 +584,7 @@
           box.textContent = '';
           box.appendChild(h('p', { class: 'pst-ok', id: 'pstLiveDone_' + pid, text: '共同編集の内容を、ドライブの投稿に返しました。共同編集は終わりました。' }));
         } }));
-        row.appendChild(h('button', { type: 'button', class: 'btn sm', id: 'pstLiveState2_' + pid, text: pending ? 'もう一度開く' : '終える', onclick: async (ev) => {
+        row.appendChild(h('button', { type: 'button', class: 'btn sm', id: 'pstLiveState2_' + pid, text: pending ? '再開する' : '止める（あとで返す）', onclick: async (ev) => {
           const b = ev.currentTarget; b.disabled = true; say(m3, '');
           const to = pending ? 'open' : 'pending';
           const r2 = await A.liveSetState({ sid: props.sid, pid, uid: AU.uid(), state: to });

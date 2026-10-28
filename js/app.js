@@ -284,16 +284,25 @@
   const coBarHtml = (n) => (!isCo(n) ? '' :
     '<div class="co-bar" id="coBar" role="status" aria-live="polite" data-state="syncing"><span class="co-tag">共同編集</span><span class="co-msg" id="coMsg">同期しています…</span><span class="grow"></span>' +
     '<button type="button" class="btn sm" data-act="co-sync" title="いますぐ、ほかの人の変更を取り込み、自分の変更を送ります">今すぐ同期</button>' +
-    (LN.shelf.live.canFinish(n) ? '<button type="button" class="btn sm" data-act="co-finish" title="共同編集を終えて、投稿者の確認（返却）を待ちます">終える</button>' : '') +
+    '<button type="button" class="btn sm primary" id="coEnd" data-act="co-end" hidden title="共同編集を終わりにします">終わりにする</button>' +
+    (LN.shelf.live.canFinish(n) ? '<button type="button" class="btn sm" id="coLater" data-act="co-finish" title="いったん止めて、あとで終わりにします">あとで返す</button>' +
+      '<button type="button" class="btn sm" id="coResume" data-act="co-resume" hidden title="止めていた共同編集を、再開します">再開する</button>' : '') +
     '<button type="button" class="btn sm ghost" data-act="co-leave" title="このノートを、ふつうのノートにします">抜ける</button></div>');
   function coText(s) {
     if (s.state === 'ok') {
-      const d = new Date(s.at), p2 = (x) => String(x).padStart(2, '0');
-      return 'この10分で ' + Math.max(1, s.editors) + ' 人が編集 ・ ' + p2(d.getHours()) + ':' + p2(d.getMinutes()) + ' に同期' + (s.conflicts ? ' ・⚠ 同時に直された所が ' + s.conflicts + ' か所（本文の「⚠」を直してください）' : '');
+      const d = new Date(s.at), p2 = (x) => String(x).padStart(2, '0'), n = curNote(), Lv = LN.shelf.live;
+      return 'この10分で ' + Math.max(1, s.editors) + ' 人が編集 ・ ' + p2(d.getHours()) + ':' + p2(d.getMinutes()) + ' に同期' + (s.conflicts ? ' ・⚠ 同時に直された所が ' + s.conflicts + ' か所（本文の「⚠」を直してください）' : '') +
+        (isCo(n) && Lv.canFinish(n) ? ' ・終わりにするときは「終わりにする」を押します（内容が、' + Lv.endHint(n) + '）' : ' ・始めた人が終わりにすると、共同編集は終わります');
     }
     return s.msg || '';
   }
-  function paintCoBar(s) { const bar = $('#coBar'), m = $('#coMsg'); if (!bar || !m) return; bar.dataset.state = s.state; m.textContent = coText(s); }
+  function paintCoBar(s) {
+    const bar = $('#coBar'), m = $('#coMsg'); if (!bar || !m) return;
+    bar.dataset.state = s.state; m.textContent = coText(s);
+    const lt = $('#coLater'), rs = $('#coResume'), en = $('#coEnd'), cn = curNote();
+    if (lt) lt.hidden = s.state === 'pending'; if (rs) rs.hidden = s.state !== 'pending';
+    if (en) en.hidden = !(isCo(cn) && LN.shelf.live.canEnd(cn));   // 終わりにできるのは、始めた人・投稿者（放置されて6時間たてば、だれでも）
+  }
   function liveAttach(n) {
     if (!isCo(n)) return;
     const Lv = LN.shelf.live;
@@ -821,11 +830,26 @@
       ui.noteId = null; mgo('mid'); persistUi(); render(); toast('ノートを削除しました');
     },
     'co-sync'() { if (isCo(curNote())) LN.shelf.live.syncNow(); },
+    async 'co-end'() {
+      const n = curNote(); if (!isCo(n) || !LN.shelf.live.canEnd(n)) return;
+      const own = LN.shelf.live.isOwner(n);
+      if (!(await ask({ title: '共同編集を終わりにする', message: own
+        ? '共同編集を終わりにして、いまの内容を、あなたの投稿に反映します（ドライブの投稿ファイルが、この内容に置き換わります）。<br>ほかの参加者のノートは、そのまま、ふつうのノートとして残ります。'
+        : '共同編集を終わりにして、いまの内容を、あなたの派生版として、棚に出します（あなたの Google ドライブに保存され、同じフォルダに「（共同編集）」の名前で並びます）。<br>元の投稿は、そのままです。ほかの参加者のノートは、ふつうのノートとして残ります。', ok: '終わりにする' }))) return;
+      const tok = LN.post && LN.post.driveToken ? await LN.post.driveToken() : null, g = LN.post && LN.post.driveAccess ? LN.post.driveAccess() : null;
+      const r = await LN.shelf.live.end(tok && g ? { token: tok, folderId: () => g.folderId() } : null);
+      if (r.ok) { renderEditor(); renderList(); toast(r.mode === 'reflect' ? '共同編集を終わりにして、あなたの投稿に反映しました' : '共同編集を終わりにして、「' + r.title + '」として、棚に出しました（元の投稿は、そのままです）'); } else toast(r.message);
+    },
     async 'co-finish'() {
       const n = curNote(); if (!isCo(n)) return;
-      if (!(await ask({ title: '共同編集を終える', message: '共同編集を終えて、投稿者の確認（ドライブへの返却）を待ちます。<br>終えると、いまの本文が最後の版になり、新しい編集は止まります。', ok: '終える' }))) return;
+      if (!(await ask({ title: 'あとで返す', message: '共同編集をいったん止めます（再開するまで、新しい編集は止まります）。<br>あとで、ノートの画面の「再開する」で続けるか、「終わりにする」で投稿に反映できます。', ok: '止める' }))) return;
       const r = await LN.shelf.live.finish();
-      toast(r.ok ? '共同編集を終えました。投稿者が確認すると、ドライブに返されます' : r.message);
+      toast(r.ok ? '共同編集を止めました。「再開する」か「終わりにする」で、続きができます' : r.message);
+    },
+    async 'co-resume'() {
+      const n = curNote(); if (!isCo(n)) return;
+      const r = await LN.shelf.live.reopen();
+      toast(r.ok ? '共同編集を再開しました' : r.message);
     },
     async 'co-leave'() {
       const n = curNote(); if (!isCo(n)) return;
